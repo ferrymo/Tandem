@@ -1,131 +1,396 @@
 @import "tailwindcss";
 
+:root {
+  --bg: #f6f6f8;
+  --surface: #ffffff;
+  --border: #e9e9f0;
+  --border-strong: #dcdce4;
+  --text-1: #1c1c28;
+  --text-2: #6e6e80;
+  --text-3: #a0a0b0;
+  --accent: #5b5bd6;
+  --accent-weak: #eeeefc;
+  --green: #16a34a;
+  --green-weak: #e8f7ee;
+  --amber: #d97706;
+  --amber-weak: #fdf3e3;
+  --red: #dc2626;
+  --red-weak: #fdecec;
+}
+
 html,
 body {
   height: 100%;
   margin: 0;
-  background: #f5f7fa;
+  background: var(--bg);
+  color: var(--text-1);
   font-family:
-    -apple-system, 'Segoe UI', 'PingFang SC', 'Hiragino Sans GB', 'Microsoft YaHei', sans-serif;
+    'Inter', -apple-system, 'Segoe UI', 'PingFang SC', 'Hiragino Sans GB', 'Microsoft YaHei', sans-serif;
+  -webkit-font-smoothing: antialiased;
+  font-feature-settings: 'tnum';
 }
 
-/* 细滚动条 */
-::-webkit-scrollbar {
-  width: 8px;
-  height: 8px;
+/* ---------- 通用 ---------- */
+.page {
+  padding: 28px 32px 40px;
+  max-width: 1560px;
+  margin: 0 auto;
 }
-::-webkit-scrollbar-thumb {
-  background: #c9cdd4;
-  border-radius: 4px;
-}
-::-webkit-scrollbar-thumb:hover {
-  background: #a9aeb8;
-}
-::-webkit-scrollbar-track {
-  background: transparent;
-}
-
-/* 看板列 */
-.kanban-row {
+.page-header {
   display: flex;
-  gap: 12px;
-  align-items: flex-start;
-  overflow-x: auto;
-  padding-bottom: 12px;
+  align-items: flex-end;
+  justify-content: space-between;
+  gap: 16px;
+  margin-bottom: 22px;
 }
-.kanban-col {
-  flex: 1 0 300px;
-  min-width: 300px;
-  background: #f0f2f5;
-  border-radius: 10px;
-  padding: 10px;
+.page-title {
+  font-size: 22px;
+  font-weight: 700;
+  letter-spacing: -0.02em;
+  line-height: 1.2;
 }
-.task-card {
-  background: #fff;
-  border-radius: 8px;
-  padding: 10px 12px;
-  margin-bottom: 8px;
+.page-desc {
+  margin-top: 5px;
+  font-size: 13px;
+  color: var(--text-2);
+}
+.card {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 14px;
+}
+.card-hover {
   cursor: pointer;
-  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.05);
-  transition: box-shadow 0.2s, transform 0.2s;
+  transition: border-color 0.15s, box-shadow 0.15s, transform 0.15s;
 }
-.task-card:hover {
-  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.12);
+.card-hover:hover {
+  border-color: var(--border-strong);
+  box-shadow: 0 6px 24px rgba(28, 28, 40, 0.07);
   transform: translateY(-1px);
 }
-.task-name {
+.hairline {
+  border-bottom: 1px solid var(--border);
+}
+
+/* ---------- 侧边栏 ---------- */
+.sidebar {
+  background: var(--surface);
+  border-right: 1px solid var(--border);
+  display: flex;
+  flex-direction: column;
+  width: 228px;
+  flex-shrink: 0;
+}
+.brand {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 18px 20px 16px;
+}
+.brand-mark {
+  width: 30px;
+  height: 30px;
+  border-radius: 9px;
+  background: linear-gradient(135deg, #6c5ce7 0%, #5b5bd6 55%, #4f46e5 100%);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: #fff;
+  font-size: 15px;
+  box-shadow: 0 2px 8px rgba(91, 91, 214, 0.35);
+}
+.brand-name {
+  font-size: 15px;
+  font-weight: 700;
+  letter-spacing: -0.01em;
+}
+.nav-group {
+  padding: 14px 12px 6px;
+  font-size: 11px;
+  font-weight: 600;
+  color: var(--text-3);
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+.nav-item {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin: 1px 10px;
+  padding: 8px 10px;
+  border-radius: 8px;
+  font-size: 13.5px;
+  font-weight: 500;
+  color: var(--text-2);
+  cursor: pointer;
+  user-select: none;
+  transition: background 0.12s, color 0.12s;
+}
+.nav-item:hover {
+  background: #f2f2f6;
+  color: var(--text-1);
+}
+.nav-item.active {
+  background: var(--accent-weak);
+  color: #4747b8;
+  font-weight: 600;
+}
+
+/* ---------- 顶栏 ---------- */
+.topbar {
+  height: 52px;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 0 20px;
+  background: var(--surface);
+  border-bottom: 1px solid var(--border);
+}
+.search-trigger {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  min-width: 240px;
+  height: 32px;
+  padding: 0 10px;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  background: #fafafb;
+  color: var(--text-3);
   font-size: 13px;
-  line-height: 1.5;
+  cursor: pointer;
+  transition: border-color 0.12s;
+}
+.search-trigger:hover {
+  border-color: var(--border-strong);
+}
+.kbd {
+  margin-left: auto;
+  font-size: 11px;
+  color: var(--text-3);
+  border: 1px solid var(--border);
+  background: #fff;
+  border-radius: 5px;
+  padding: 1px 5px;
+  line-height: 1.4;
+}
+
+/* ---------- KPI ---------- */
+.kpi {
+  padding: 18px 20px 16px;
+}
+.kpi-label {
+  font-size: 12.5px;
+  font-weight: 500;
+  color: var(--text-2);
+}
+.kpi-value {
+  margin-top: 6px;
+  font-size: 27px;
+  font-weight: 700;
+  letter-spacing: -0.02em;
+  line-height: 1;
+}
+.kpi-unit {
+  font-size: 13px;
+  font-weight: 500;
+  color: var(--text-3);
+  margin-left: 4px;
+}
+
+/* ---------- 状态药丸 ---------- */
+.pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  height: 22px;
+  padding: 0 9px;
+  border-radius: 999px;
+  font-size: 12px;
+  font-weight: 500;
+  white-space: nowrap;
+}
+.pill::before {
+  content: '';
+  width: 5px;
+  height: 5px;
+  border-radius: 50%;
+  background: currentColor;
+}
+.pill-doing { background: var(--accent-weak); color: #4747b8; }
+.pill-wait { background: var(--amber-weak); color: #b45309; }
+.pill-done { background: var(--green-weak); color: #15803d; }
+.pill-closed { background: #f0f0f4; color: var(--text-3); }
+.pill-pause { background: #fdecec; color: #b91c1c; }
+.pill-cancel { background: #f0f0f4; color: var(--text-3); }
+
+/* ---------- 项目卡 ---------- */
+.proj-card {
+  padding: 16px 18px 14px;
+}
+.proj-name {
+  font-size: 14px;
+  font-weight: 600;
+  letter-spacing: -0.01em;
+}
+.proj-meta {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+  font-size: 12px;
+  color: var(--text-2);
+  margin-top: 10px;
+}
+.fav-star {
+  cursor: pointer;
+  font-size: 14px;
+  line-height: 1;
+  color: #d5d5de;
+  transition: color 0.12s, transform 0.12s;
+}
+.fav-star:hover { transform: scale(1.15); }
+.fav-star.on { color: #f5b60d; }
+
+/* ---------- 看板 ---------- */
+.board-row {
+  display: flex;
+  gap: 14px;
+  align-items: flex-start;
+  overflow-x: auto;
+  padding-bottom: 14px;
+}
+.board-col {
+  flex: 1 0 300px;
+  min-width: 300px;
+  background: #f1f1f5;
+  border-radius: 13px;
+  padding: 10px;
+}
+.board-col-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 4px 8px 10px;
+  font-size: 12.5px;
+  font-weight: 600;
+  color: var(--text-2);
+}
+.task-card {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  padding: 11px 13px;
   margin-bottom: 8px;
+  cursor: pointer;
+  transition: border-color 0.13s, box-shadow 0.13s;
+}
+.task-card:hover {
+  border-color: var(--border-strong);
+  box-shadow: 0 3px 12px rgba(28, 28, 40, 0.08);
+}
+.task-card-name {
+  font-size: 13px;
+  line-height: 1.45;
+  margin-bottom: 9px;
   word-break: break-all;
   display: -webkit-box;
   -webkit-line-clamp: 2;
   -webkit-box-orient: vertical;
   overflow: hidden;
 }
-.task-meta {
+.task-card-meta {
   display: flex;
   flex-wrap: wrap;
-  gap: 6px;
+  gap: 8px;
   align-items: center;
-  font-size: 12px;
-  color: #8c8c8c;
+  font-size: 11.5px;
+  color: var(--text-3);
 }
 
-/* 时间轴 */
-.timeline-grid {
-  display: grid;
-  min-width: max-content;
-}
+/* ---------- 时间轴热力格 ---------- */
+.tl-grid { display: grid; min-width: max-content; }
 .tl-cell {
-  height: 40px;
+  height: 42px;
   display: flex;
   align-items: center;
   justify-content: center;
   font-size: 12px;
-  border-right: 1px solid #f0f0f0;
-  border-bottom: 1px solid #f0f0f0;
+  font-weight: 500;
+  border-right: 1px solid #f2f2f6;
+  border-bottom: 1px solid #f2f2f6;
 }
-.tl-sticky-name {
+.tl-name {
   position: sticky;
   left: 0;
   z-index: 2;
-  background: #fff;
-  border-right: 2px solid #e8e8e8;
-  padding: 0 12px;
+  background: var(--surface);
+  border-right: 1px solid var(--border);
+  padding: 0 14px;
   display: flex;
   align-items: center;
+  gap: 8px;
   font-size: 13px;
 }
-.tl-head {
-  background: #fafafa;
+.tl-head-cell {
+  background: #fafafc;
   font-weight: 600;
+  color: var(--text-2);
   position: sticky;
   top: 0;
   z-index: 1;
 }
 
-/* 甘特条 */
-.gantt-row {
-  position: relative;
-  border-bottom: 1px solid #f0f0f0;
-}
+/* ---------- 甘特 ---------- */
 .gantt-bar {
   position: absolute;
-  top: 6px;
-  height: 26px;
-  border-radius: 5px;
+  height: 24px;
+  border-radius: 6px;
   color: #fff;
-  font-size: 12px;
-  line-height: 26px;
+  font-size: 11.5px;
+  font-weight: 500;
+  line-height: 24px;
   padding: 0 8px;
   overflow: hidden;
   white-space: nowrap;
   text-overflow: ellipsis;
   cursor: pointer;
-  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.18);
+  opacity: 0.92;
+  transition: opacity 0.12s;
 }
+.gantt-bar:hover { opacity: 1; }
 .gantt-bar-overdue {
-  border: 2px solid #ff4d4f;
-  box-shadow: 0 0 0 2px rgba(255, 77, 79, 0.15);
+  box-shadow: inset 0 0 0 2px #ef4444;
 }
+
+/* ---------- 细节 ---------- */
+.section-title {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  font-size: 15px;
+  font-weight: 650;
+  letter-spacing: -0.01em;
+  margin: 26px 0 12px;
+}
+.empty-hint {
+  padding: 40px 0;
+  text-align: center;
+  color: var(--text-3);
+  font-size: 13px;
+}
+::-webkit-scrollbar { width: 9px; height: 9px; }
+::-webkit-scrollbar-thumb { background: #d4d4dd; border-radius: 5px; border: 2px solid transparent; background-clip: content-box; }
+::-webkit-scrollbar-thumb:hover { background: #b9b9c6; background-clip: content-box; }
+::-webkit-scrollbar-track { background: transparent; }
+
+/* antd 表格微调 */
+.ant-table-wrapper .ant-table { background: transparent; }
+.ant-table-wrapper .ant-table-thead > tr > th {
+  background: transparent;
+  color: var(--text-2);
+  font-weight: 600;
+  font-size: 12px;
+  border-bottom: 1px solid var(--border);
+}
+.ant-table-wrapper .ant-table-tbody > tr > td { border-bottom: 1px solid #f2f2f6; }
+.ant-table-wrapper .ant-table-tbody > tr:hover > td { background: #f8f8fb !important; }
