@@ -1,0 +1,26 @@
+{
+  "name": "zentaopro",
+  "private": true,
+  "version": "0.1.0",
+  "type": "module",
+  "description": "禅道多项目指挥台：多项目进展总览、跨项目工时记录、AI 助手底座",
+  "scripts": {
+    "dev:server": "pnpm --filter @ztp/server dev",
+    "dev:web": "pnpm --filter web dev",
+    "build": "pnpm --filter web build",
+    "start": "pnpm --filter @ztp/server start",
+    "start:web": "pnpm --filter web start"
+  },
+  "engines": {
+    "node": ">=20"
+  },
+  "pnpm": {
+    "overrides": {
+      "magic-string": "^0.30.19"
+    },
+    "onlyBuiltDependencies": [
+      "esbuild",
+      "@swc/core"
+    ]
+  }
+}
