@@ -9,7 +9,12 @@ packages/
   zentao-sdk/   # 禅道 REST v1 客户端 + 网页会话桥接（记工时），server 与 MCP 共用
   server/       # Fastify API (:3300)：会话代理、聚合看板数据、工时批量提交
   web/          # Next.js 16 + Ant Design 6 + Tailwind 4 (:3000)，/api 经 rewrite 代理到 3300
+  mcp/          # zentao-mcp：MCP Server（AI 建项目/任务、状态流转、记工时，草稿-确认模式）
 ```
+
+## AI 助手（MCP Server）
+
+团队每人在 AI 客户端（ZCode/Claude 等）配置 `packages/mcp` 构建出的 `zentao-mcp`，填自己的禅道账号即可让 AI 查项目/任务/负载、按「草稿-确认」模式创建任务、维护状态、登记工时。详见 [packages/mcp/README.md](packages/mcp/README.md)。
 
 ## 页面
 
