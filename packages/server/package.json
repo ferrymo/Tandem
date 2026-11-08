@@ -10,7 +10,6 @@
   },
   "dependencies": {
     "@fastify/cookie": "^9.3.1",
-    "@fastify/static": "^7.0.4",
     "@ztp/zentao-sdk": "workspace:*",
     "fastify": "^4.28.1"
   },

@@ -1,9 +1,5 @@
 import Fastify from 'fastify'
 import cookie from '@fastify/cookie'
-import fastifyStatic from '@fastify/static'
-import {existsSync} from 'node:fs'
-import {dirname, resolve} from 'node:path'
-import {fileURLToPath} from 'node:url'
 import {PasswordChangeRequiredError, ZentaoError} from '@ztp/zentao-sdk'
 import {config} from './config.js'
 import {destroyExpired, getSession, type Session} from './sessions.js'
@@ -45,16 +41,6 @@ app.setErrorHandler((err, _req, reply) => {
   if (status >= 500) console.error(err)
   reply.code(status).send({message: err.message})
 })
-
-// 生产模式：托管 web 构建产物
-const webDist = resolve(dirname(fileURLToPath(import.meta.url)), '../../web/dist')
-if (existsSync(webDist)) {
-  await app.register(fastifyStatic, {root: webDist})
-  app.setNotFoundHandler((req, reply) => {
-    if (req.url.startsWith('/api/')) return reply.code(404).send({message: 'not found'})
-    return reply.sendFile('index.html')
-  })
-}
 
 setInterval(destroyExpired, 10 * 60 * 1000).unref()
 

@@ -345,7 +345,7 @@ export default function PlanPage() {
         </div>
       </Spin>
       <div style={{ marginTop: 10, fontSize: 12, color: "var(--text-3)" }}>
-        提示：禅道任务普遍缺少「预计开始/截止」，未填日期的任务计入上方"待排期"——建议团队规范：任务必须填截止日期。
+        提示：禅道任务普遍缺少「预计开始/截止」，未填日期的任务计入上方「待排期」——建议团队规范：任务必须填截止日期。
       </div>
     </div>
   );
