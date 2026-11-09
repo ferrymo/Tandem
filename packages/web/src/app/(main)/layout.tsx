@@ -12,6 +12,7 @@ import {
 } from "@ant-design/icons";
 import { App as AntdApp, Button, Dropdown, Spin } from "antd";
 import { CommandPalette } from "@/components/CommandPalette";
+import { Logo } from "@/components/Logo";
 import { Avatar as UserAvatar } from "@/components/ui";
 import { api } from "@/lib/api";
 import { fetchMe, resetMe } from "@/lib/user";
@@ -104,8 +105,7 @@ export default function MainLayout({ children }: { children: React.ReactNode }) 
       {/* 侧边栏 */}
       <aside className="sidebar">
         <div className="brand">
-          <div className="brand-mark">🚲</div>
-          <div className="brand-name">Tandem</div>
+          <Logo />
         </div>
         <div className="nav-group">工作空间</div>
         {NAV.map((n) => (

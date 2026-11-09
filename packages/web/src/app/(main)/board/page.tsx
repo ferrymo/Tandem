@@ -32,7 +32,7 @@ const COLUMNS = [
   { key: "other", label: "其他" },
 ];
 
-const PRI_COLOR: Record<number, string> = { 1: "#dc2626", 2: "#d97706", 3: "#4d6bfe", 4: "#a0a0b0" };
+const PRI_COLOR: Record<number, string> = { 1: "#dc2626", 2: "#d97706", 3: "var(--brand-500)", 4: "#a0a0b0" };
 
 function BoardInner() {
   const { message } = AntdApp.useApp();
@@ -254,7 +254,7 @@ function BoardInner() {
                           height: 7,
                           borderRadius: 4,
                           background:
-                            col.key === "doing" ? "#4d6bfe" : col.key === "done" ? "#16a34a" : col.key === "wait" ? "#d97706" : "#c3c3cf",
+                            col.key === "doing" ? "var(--brand-500)" : col.key === "done" ? "#16a34a" : col.key === "wait" ? "#d97706" : "#c3c3cf",
                         }}
                       />
                       {col.label}

@@ -141,7 +141,7 @@ function FillTab({ onChanged }: { onChanged?: () => void }) {
           今日合计 <b style={{ fontSize: 16, color: "var(--text-1)" }}>{total}</b> / 8h
         </span>
         <div style={{ width: 120 }}>
-          <Progress percent={pct} size={["100%", 6]} showInfo={false} strokeColor={pct >= 100 ? "#16a34a" : "#4d6bfe"} />
+          <Progress percent={pct} size={["100%", 6]} showInfo={false} strokeColor={pct >= 100 ? "#16a34a" : "var(--brand-500)"} />
         </div>
         <Button type="primary" loading={submitting} disabled={total <= 0} onClick={submit}>
           提交到禅道
@@ -309,7 +309,7 @@ function TimelineTab() {
   function cellColor(total: number): { bg: string; color: string } {
     if (total <= 0) return { bg: "transparent", color: "var(--text-3)" };
     const alpha = Math.min(0.16 + total / 12, 0.92);
-    return { bg: `rgba(77, 107, 254, ${alpha.toFixed(2)})`, color: alpha > 0.55 ? "#fff" : "#3d5bef" };
+    return { bg: `rgba(57, 100, 254, ${alpha.toFixed(2)})`, color: alpha > 0.55 ? "#fff" : "var(--brand-600)" };
   }
 
   return (
@@ -369,7 +369,7 @@ function TimelineTab() {
                   gap: 0,
                   lineHeight: 1.35,
                   background: d.isSame(dayjs(), "day") ? "var(--accent-weak)" : "#fafafc",
-                  color: d.isSame(dayjs(), "day") ? "#3d5bef" : "var(--text-2)",
+                  color: d.isSame(dayjs(), "day") ? "var(--brand-600)" : "var(--text-2)",
                 }}
               >
                 <span>{d.format("MM-DD")}</span>
@@ -414,7 +414,7 @@ function TimelineTab() {
                               <div style={{ maxWidth: 360 }}>
                                 {cell.details.map((det, i) => (
                                   <div key={i} style={{ padding: "3px 0", fontSize: 12 }}>
-                                    <b style={{ color: "#4d6bfe" }}>{det.consumed}h</b> [{det.projectName}] {det.taskName}
+                                    <b style={{ color: "var(--brand-500)" }}>{det.consumed}h</b> [{det.projectName}] {det.taskName}
                                     {det.work ? ` — ${det.work}` : ""}
                                   </div>
                                 ))}

@@ -24,24 +24,27 @@ export default function RootLayout({
             locale={zhCN}
             theme={{
               token: {
-                colorPrimary: "#4d6bfe",
-                colorInfo: "#4d6bfe",
-                colorLink: "#4d6bfe",
-                colorBgLayout: "#f6f6f8",
+                // 与 globals.css 设计令牌同步（docs/03-设计规范.md）
+                colorPrimary: "#4176e6",
+                colorInfo: "#4176e6",
+                colorLink: "#4176e6",
+                colorBgLayout: "#f9fafb",
                 colorBgContainer: "#ffffff",
-                colorBorder: "#e0e0e8",
-                colorBorderSecondary: "#e9e9f0",
-                colorText: "#1c1c28",
-                colorTextSecondary: "#6e6e80",
-                colorTextTertiary: "#a0a0b0",
-                borderRadius: 9,
+                colorBorder: "#cfd5e0",
+                colorBorderSecondary: "#e1e5ee",
+                colorText: "#0f1115",
+                colorTextSecondary: "#979da6",
+                colorTextTertiary: "#adaeb2",
+                borderRadius: 8,
                 controlHeight: 32,
                 fontSize: 13.5,
+                boxShadowSecondary: "0 0 0 0.5px rgb(15 17 21 / 8%), 0 8px 32px rgb(15 17 21 / 12%)",
               },
               components: {
-                Button: { fontWeight: 500 },
+                Button: { fontWeight: 500, primaryShadow: "none", defaultShadow: "none" },
                 Card: { paddingLG: 20 },
-                Table: { headerBg: "transparent", rowHoverBg: "#f8f8fb" },
+                Table: { headerBg: "transparent", rowHoverBg: "#f9fafb" },
+                Modal: { contentBg: "#ffffff" },
               },
             }}
           >

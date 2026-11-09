@@ -1,8 +1,9 @@
 "use client";
 
 import { useState } from "react";
-import { Button, Card, Form, Input, Typography } from "antd";
+import { Button, Input } from "antd";
 import { useRouter } from "next/navigation";
+import { Logo } from "@/components/Logo";
 
 export default function LoginPage() {
   const router = useRouter();
@@ -37,51 +38,45 @@ export default function LoginPage() {
   }
 
   return (
-    <div
-      className="flex h-screen items-center justify-center"
-      style={{ background: "linear-gradient(135deg, #e6f0ff 0%, #f5f7fa 55%, #e8f7f0 100%)" }}
-    >
-      <Card style={{ width: 400, boxShadow: "0 8px 32px rgba(0,0,0,0.08)" }}>
-        <div className="mb-6 text-center">
-          <div style={{ fontSize: 34 }}>🚲</div>
-          <Typography.Title level={3} style={{ marginBottom: 4 }}>
-            Tandem
-          </Typography.Title>
-          <Typography.Text type="secondary">
-            人与 AI Agent 共同交付的开源协作平台
-          </Typography.Text>
+    <div className="flex h-screen items-center justify-center" style={{ background: "var(--bg)" }}>
+      <div style={{ width: 340 }}>
+        <div className="mb-8 flex flex-col items-center gap-3">
+          <Logo size={28} />
+          <div style={{ fontSize: 13, color: "var(--ink-2)" }}>
+            人与 AI Agent 共同交付的协作平台
+          </div>
         </div>
-        <Form layout="vertical" onFinish={submit}>
-          <Form.Item label="禅道账号">
-            <Input
-              size="large"
-              value={account}
-              onChange={(e) => setAccount(e.target.value)}
-              placeholder="与禅道登录一致"
-              autoFocus
-            />
-          </Form.Item>
-          <Form.Item label="密码">
-            <Input.Password
-              size="large"
-              value={password}
-              onChange={(e) => setPassword(e.target.value)}
-              placeholder="禅道密码"
-            />
-          </Form.Item>
-          <Button type="primary" size="large" block htmlType="submit" loading={loading}>
+        <form
+          onSubmit={(e) => {
+            e.preventDefault();
+            submit();
+          }}
+          style={{ display: "flex", flexDirection: "column", gap: 12 }}
+        >
+          <Input
+            size="large"
+            value={account}
+            onChange={(e) => setAccount(e.target.value)}
+            placeholder="协作系统账号"
+            autoFocus
+          />
+          <Input.Password
+            size="large"
+            value={password}
+            onChange={(e) => setPassword(e.target.value)}
+            placeholder="密码"
+          />
+          <Button type="primary" size="large" htmlType="submit" loading={loading} block>
             登录
           </Button>
-        </Form>
+        </form>
         {tip && (
-          <Typography.Text type="danger" style={{ display: "block", marginTop: 12 }}>
-            {tip}
-          </Typography.Text>
+          <div style={{ marginTop: 12, fontSize: 13, color: "var(--bad)" }}>{tip}</div>
         )}
-        <Typography.Text type="secondary" style={{ display: "block", marginTop: 12, fontSize: 12 }}>
-          使用禅道账号登录，权限与禅道完全一致；凭证仅用于登录。
-        </Typography.Text>
-      </Card>
+        <div style={{ marginTop: 20, fontSize: 12, color: "var(--ink-3)", textAlign: "center" }}>
+          身份与权限继承你的协作系统账号
+        </div>
+      </div>
     </div>
   );
 }

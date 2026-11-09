@@ -3,7 +3,7 @@
 import type { TaskDto } from "@/lib/api";
 
 const AVATAR_COLORS = [
-  "#4d6bfe", "#0ea5e9", "#16a34a", "#d97706", "#db2777",
+  "#4176e6", "#0ea5e9", "#16a34a", "#d97706", "#db2777",
   "#7c3aed", "#0891b2", "#ca8a04", "#dc2626", "#4f46e5",
 ];
 
@@ -15,7 +15,7 @@ export function hashColor(key: string): string {
 
 /** 项目配色（甘特条/圆点，按名称稳定散列，低饱和高级色板） */
 const PROJECT_PALETTE = [
-  "#4d6bfe", "#0e9488", "#d97706", "#db2777", "#7c3aed",
+  "#4176e6", "#0e9488", "#d97706", "#db2777", "#7c3aed",
   "#0284c7", "#65a30d", "#e11d48", "#9333ea", "#b45309",
   "#0d9488", "#4f46e5",
 ];
