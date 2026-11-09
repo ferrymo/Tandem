@@ -5,17 +5,22 @@ import { App as AntdApp, Button, DatePicker, Empty, Segmented, Select, Spin, Too
 import dayjs, { type Dayjs } from "dayjs";
 import { api, type TaskDto } from "@/lib/api";
 import { useUser } from "@/lib/user";
-import { Avatar } from "@/components/ui";
+import { Avatar, projectTone } from "@/components/ui";
 
 const DAY_W = 36;
 const ACTIVE = ["wait", "doing", "pause"];
 
-/** 任务条配色：状态驱动（低饱和、无渐变），唯一强调色留给"进行中" */
-const BAR_STYLE: Record<string, { bg: string; fg: string }> = {
-  doing: { bg: "var(--brand-500)", fg: "#fff" },
-  wait: { bg: "var(--line-strong)", fg: "var(--ink-2)" },
-  pause: { bg: "var(--warn-weak)", fg: "#b45309" },
-};
+/** 任务条配色：项目弱底 tone + 状态描边（进行中=品牌蓝实心感，其余轻描边） */
+function barStyle(task: TaskDto): { bg: string; fg: string; border: string } {
+  const tone = projectTone(task.projectName);
+  if (task.status === "doing") {
+    return { bg: tone.bg, fg: tone.fg, border: tone.fg };
+  }
+  if (task.status === "pause") {
+    return { bg: "var(--warn-weak)", fg: "#b45309", border: "#e8c48a" };
+  }
+  return { bg: tone.bg, fg: "var(--ink-2)", border: "var(--line-strong)" };
+}
 
 interface Bar {
   task: TaskDto;
@@ -304,7 +309,7 @@ export default function PlanPage() {
                       {p.bars.map((b) => {
                         const left = offsetOf(b.start);
                         const width = Math.max((b.end.diff(b.start, "day") + 1) * DAY_W - 4, 8);
-                        const st = BAR_STYLE[b.task.status] ?? BAR_STYLE.wait;
+                        const st = barStyle(b.task);
                         return (
                           <Tooltip
                             key={b.task.id}
@@ -331,6 +336,7 @@ export default function PlanPage() {
                                 borderRadius: 5,
                                 background: st.bg,
                                 color: st.fg,
+                                boxShadow: `inset 0 0 0 1px ${st.border}`,
                                 fontSize: 11,
                                 fontWeight: 400,
                                 lineHeight: "20px",
@@ -342,7 +348,7 @@ export default function PlanPage() {
                                 ...(b.overdue
                                   ? {
                                       backgroundImage:
-                                        "repeating-linear-gradient(135deg, transparent 0 4px, rgb(239 68 68 / 18%) 4px 8px)",
+                                        "repeating-linear-gradient(135deg, transparent 0 4px, rgb(239 68 68 / 14%) 4px 8px)",
                                     }
                                   : {}),
                               }}

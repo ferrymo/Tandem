@@ -22,7 +22,7 @@ import {
 } from "antd";
 import { AppstoreOutlined, UnorderedListOutlined } from "@ant-design/icons";
 import { api, type OverviewDto, type TaskDto } from "@/lib/api";
-import { Avatar, ProjectDot, StatusPill, isOverdue, todayStr } from "@/components/ui";
+import { Avatar, ProjectTag, StatusPill, isOverdue, todayStr } from "@/components/ui";
 
 const COLUMNS = [
   { key: "wait", label: "未开始" },
@@ -114,8 +114,7 @@ function BoardInner() {
 
   const metaRow = (t: TaskDto) => (
     <div className="task-card-meta">
-      <ProjectDot name={t.projectName} />
-      <span style={{ color: "var(--text-2)" }}>{t.projectName}</span>
+      <ProjectTag name={t.projectName} />
       {t.assignedTo && <Avatar name={t.assignedTo.realname} size={20} />}
       {t.deadline && (
         <span style={isOverdue(t) ? { color: "var(--red)", fontWeight: 600 } : undefined}>
@@ -143,12 +142,11 @@ function BoardInner() {
       ellipsis: true,
       render: (_: unknown, t: TaskDto) => (
         <span style={{ display: "flex", alignItems: "center", gap: 8 }}>
-          <ProjectDot name={t.projectName} />
+          <ProjectTag name={t.projectName} />
           <span style={{ fontWeight: 500 }}>{t.name}</span>
         </span>
       ),
     },
-    { title: "项目", dataIndex: "projectName", width: 120, ellipsis: true },
     {
       title: "状态",
       dataIndex: "status",
