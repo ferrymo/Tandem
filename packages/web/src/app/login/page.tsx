@@ -43,12 +43,12 @@ export default function LoginPage() {
     >
       <Card style={{ width: 400, boxShadow: "0 8px 32px rgba(0,0,0,0.08)" }}>
         <div className="mb-6 text-center">
-          <div style={{ fontSize: 34 }}>🧭</div>
+          <div style={{ fontSize: 34 }}>🚲</div>
           <Typography.Title level={3} style={{ marginBottom: 4 }}>
-            禅道指挥台
+            Tandem
           </Typography.Title>
           <Typography.Text type="secondary">
-            多项目进展 · 工时协同 · 资源排期
+            人与 AI Agent 共同交付的开源协作平台
           </Typography.Text>
         </div>
         <Form layout="vertical" onFinish={submit}>

@@ -8,8 +8,8 @@
   --text-1: #1c1c28;
   --text-2: #6e6e80;
   --text-3: #a0a0b0;
-  --accent: #5b5bd6;
-  --accent-weak: #eeeefc;
+  --accent: #4d6bfe;
+  --accent-weak: #eef1fe;
   --green: #16a34a;
   --green-weak: #e8f7ee;
   --amber: #d97706;
@@ -91,13 +91,13 @@ body {
   width: 30px;
   height: 30px;
   border-radius: 9px;
-  background: linear-gradient(135deg, #6c5ce7 0%, #5b5bd6 55%, #4f46e5 100%);
+  background: linear-gradient(135deg, #6c5ce7 0%, #4d6bfe 55%, #4f46e5 100%);
   display: flex;
   align-items: center;
   justify-content: center;
   color: #fff;
   font-size: 15px;
-  box-shadow: 0 2px 8px rgba(91, 91, 214, 0.35);
+  box-shadow: 0 2px 8px rgba(77, 107, 254, 0.35);
 }
 .brand-name {
   font-size: 15px;
@@ -132,7 +132,7 @@ body {
 }
 .nav-item.active {
   background: var(--accent-weak);
-  color: #4747b8;
+  color: #3d5bef;
   font-weight: 600;
 }
 
@@ -217,7 +217,7 @@ body {
   border-radius: 50%;
   background: currentColor;
 }
-.pill-doing { background: var(--accent-weak); color: #4747b8; }
+.pill-doing { background: var(--accent-weak); color: #3d5bef; }
 .pill-wait { background: var(--amber-weak); color: #b45309; }
 .pill-done { background: var(--green-weak); color: #15803d; }
 .pill-closed { background: #f0f0f4; color: var(--text-3); }

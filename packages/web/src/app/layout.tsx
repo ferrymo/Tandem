@@ -9,8 +9,8 @@ import "./globals.css";
 dayjs.locale("zh-cn");
 
 export const metadata: Metadata = {
-  title: "禅道指挥台",
-  description: "多项目进展 · 工时协同 · 资源排期",
+  title: "Tandem",
+  description: "人与 AI Agent 共同交付的协作平台",
 };
 
 export default function RootLayout({
@@ -24,9 +24,9 @@ export default function RootLayout({
             locale={zhCN}
             theme={{
               token: {
-                colorPrimary: "#5b5bd6",
-                colorInfo: "#5b5bd6",
-                colorLink: "#5b5bd6",
+                colorPrimary: "#4d6bfe",
+                colorInfo: "#4d6bfe",
+                colorLink: "#4d6bfe",
                 colorBgLayout: "#f6f6f8",
                 colorBgContainer: "#ffffff",
                 colorBorder: "#e0e0e8",

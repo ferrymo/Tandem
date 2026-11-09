@@ -1,15 +1,16 @@
 {
-  "name": "zentaopro",
+  "name": "tandem",
   "private": true,
-  "version": "0.1.0",
+  "version": "1.0.0-alpha.1",
   "type": "module",
-  "description": "禅道多项目指挥台：多项目进展总览、跨项目工时记录、AI 助手底座",
+  "description": "Tandem · 面向多团队多项目，让人与 AI Agent 共同规划、执行和交付的开源协作平台",
   "scripts": {
     "dev:server": "pnpm --filter @ztp/server dev",
     "dev:web": "pnpm --filter web dev",
     "build": "pnpm --filter web build",
     "start": "pnpm --filter @ztp/server start",
-    "start:web": "pnpm --filter web start"
+    "start:web": "pnpm --filter web start",
+    "build:mcp": "pnpm --filter @ztp/mcp build"
   },
   "engines": {
     "node": ">=20"

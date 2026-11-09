@@ -158,7 +158,7 @@ export default function DashboardPage() {
                     <StatusPill status={p.status === "done" ? "done" : p.status === "closed" ? "closed" : p.status === "wait" ? "wait" : "doing"} />
                   </div>
                   <div style={{ marginTop: 12 }}>
-                    <Progress percent={Math.min(Math.round(p.progress), 100)} size={["100%", 6]} strokeColor="#5b5bd6" showInfo={false} />
+                    <Progress percent={Math.min(Math.round(p.progress), 100)} size={["100%", 6]} strokeColor="#4d6bfe" showInfo={false} />
                     <div style={{ display: "flex", justifyContent: "space-between", marginTop: 5, fontSize: 11.5, color: "var(--text-3)" }}>
                       <span>{p.begin} ~ {p.end}</span>
                       <b style={{ color: "var(--text-2)" }}>{Math.round(p.progress)}%</b>
@@ -191,7 +191,7 @@ export default function DashboardPage() {
                       <span style={{ width: 90, fontSize: 13, fontWeight: 500 }}>{r.realname}</span>
                       <span style={{ fontSize: 12, color: "var(--text-3)", width: 70 }}>{r.taskCount} 任务</span>
                       <div style={{ flex: 1 }}>
-                        <Progress percent={pct} size={["100%", 6]} showInfo={false} strokeColor={pct > 70 ? "#d97706" : "#5b5bd6"} />
+                        <Progress percent={pct} size={["100%", 6]} showInfo={false} strokeColor={pct > 70 ? "#d97706" : "#4d6bfe"} />
                       </div>
                       <span style={{ width: 130, textAlign: "right", fontSize: 12, color: "var(--text-2)" }}>
                         余 <b style={{ color: "var(--text-1)" }}>{r.left}</b> / 耗 {r.consumed}h
@@ -213,7 +213,7 @@ export default function DashboardPage() {
                 type="circle"
                 size={72}
                 percent={Math.min(Math.round((todayHours / dayGoal) * 100), 100)}
-                strokeColor="#5b5bd6"
+                strokeColor="#4d6bfe"
                 format={() => (
                   <span style={{ fontSize: 15, fontWeight: 700, color: "var(--text-1)" }}>
                     {todayHours}<span style={{ fontSize: 11, color: "var(--text-3)", fontWeight: 500 }}>/{dayGoal}h</span>

@@ -1,52 +1,67 @@
-# zentaopro · 禅道多项目指挥台
+<div align="center">
 
-面向"一人多项目"团队的禅道增强层：多项目进展总览、跨项目工时快捷记录、工时时间轴、资源排期，并为 AI 助手（MCP Server，二期）提供统一的 `zentao-sdk`。
+# Tandem 🚲
+
+**面向多团队、多项目，让人与 AI Agent 共同规划、执行和交付的开源协作平台**
+
+[![License](https://img.shields.io/badge/License-Apache_2.0-blue.svg)](LICENSE)
+
+不替代你的协作系统，做它们之上的协同层。
+
+</div>
+
+---
+
+## 这是什么
+
+一人多项目成为常态，AI Agent 正在成为执行者，而协作工具仍以单项目视角组织一切。Tandem 在你既有的协作系统（禅道 / Jira / 飞书项目…）之上，提供：
+
+- **多项目指挥台** —— 跨项目进展、团队负载、任务看板，一屏全览；
+- **工时协同** —— 跨项目一屏批量填报、人员×日期时间轴、多维统计；
+- **资源排期** —— 人员甘特与空档规划，谁什么时候有空一目了然；
+- **人机协同** —— AI 经 MCP 接入代你规划执行：拆任务、建项目、维护状态、记工时，**一切写操作走"草案 → 人工审阅 → 执行"**，人只负责审阅和纠正。
+
+**下游系统是唯一事实源**：Tandem 不复制业务数据，权限完全继承你的下游账号。禅道是第一个官方连接器（[adapters/zentao](adapters/zentao)），更多连接器在路上。
 
 ## 结构
 
 ```
+apps/
+  web/        # Next.js 16 + Ant Design 6（:3000）：工作台/任务/工时/排期 + ⌘K
+  server/     # Fastify API（:3300）：会话代理、聚合接口、草案引擎
+  mcp/        # tandem-mcp：MCP Server（stdio），AI 助手接入
 packages/
-  zentao-sdk/   # 禅道 REST v1 客户端 + 网页会话桥接（记工时），server 与 MCP 共用
-  server/       # Fastify API (:3300)：会话代理、聚合看板数据、工时批量提交
-  web/          # Next.js 16 + Ant Design 6 + Tailwind 4 (:3000)，/api 经 rewrite 代理到 3300
-  mcp/          # zentao-mcp：MCP Server（AI 建项目/任务、状态流转、记工时，草稿-确认模式）
+  core/       # 领域模型 + 适配器端口（产品层零下游知识）
+adapters/
+  zentao/     # 禅道连接器：REST v1 + 网页会话桥接（记工时/删除/改密）
 ```
 
-## AI 助手（MCP Server）
-
-团队每人在 AI 客户端（ZCode/Claude 等）配置 `packages/mcp` 构建出的 `zentao-mcp`，填自己的禅道账号即可让 AI 查项目/任务/负载、按「草稿-确认」模式创建任务、维护状态、登记工时。详见 [packages/mcp/README.md](packages/mcp/README.md)。
-
-## 页面
-
-| 路由 | 说明 |
-|---|---|
-| `/` 指挥台 | 统计卡 + 项目卡片（进度/延期/收藏），负责人附团队全貌表 |
-| `/board` 任务看板 | 跨项目按状态看板，支持项目/人员/关键词过滤，卡片可直接开始/完成（带工时） |
-| `/effort` 工时中心 | 跨项目任务一屏批量记工时写回禅道，本周记录/团队记录/按项目累计 |
-| `/timeline` 工时时间轴 | 人员 × 日期热力横轴（本周/本月/近30天/自定义），含日合计与明细弹层 |
-| `/plan` 资源排期 | 人员甘特：参与项目、任务排期条、逾期红框、预计空闲时间（负责人可见全员） |
+> 当前仓库处于 v1.0 架构分离阶段（原 `packages/*` → `apps/* + adapters/*`），设计文档见 [docs](docs/)。
 
 ## 快速开始
 
 ```bash
 pnpm install
-cp .env.example .env   # 按需修改 ZT_BASE_URL / ZT_LEAD_ACCOUNTS
+cp .env.example .env   # 配置下游连接（当前：禅道地址）
 
 pnpm dev:server        # API http://localhost:3300
-pnpm dev:web           # 前端 http://localhost:3000（开发模式，/api 代理到 3300）
-
-# 生产：构建前端后 next start
-pnpm build && pnpm start & pnpm start:web
+pnpm dev:web           # 前端 http://localhost:3000
 ```
+
+AI 助手接入（每人自己的账号，权限即本人）：见 [apps/mcp/README.md](apps/mcp/README.md)。
+
+## 文档
+
+- [产品设计文档](docs/01-产品设计文档.md) —— 定位、概念模型、功能架构、开源策略
+- [技术架构文档](docs/02-技术架构文档.md) —— 三层分离、端口定义、连接器准入、ADR
 
 ## 设计原则
 
-- **禅道是唯一事实源**：本系统不复制业务数据，任务/项目状态一律以禅道为准；工时提交直接写入禅道。
-- **权限天然继承**：每人用本人禅道账号登录，后端以各用户自己的凭证代理请求，看到什么由禅道权限决定；`ZT_LEAD_ACCOUNTS` 额外解锁团队工时视图。
-- **工时读取来源可插拔**：当前为"本工具提交记录 + 任务累计工时（API）"；接入禅道只读数据库后自动升级为全量 `zt_effort` 明细（待管理员开账号）。
+1. **产品是产品，对接是对接** —— 产品层不出现任何下游系统词汇，一切经适配层端口注入；
+2. **下游为事实源** —— 只聚合（带 TTL 缓存）不复制，写操作直写下游；
+3. **权限穿透** —— 不自建账号体系，你的下游权限就是 Tandem 权限；
+4. **写必经草案** —— AI 与人统一 `propose → review → execute`，可审阅、可追溯。
 
-## 已知限制（实测于禅道 21.7.9）
+## License
 
-- REST v1 无独立工时(effort)接口：工时写入走网页会话桥接（`task-recordEstimate`），读取走本工具提交日志 + 任务累计工时。
-- REST v1 的 `DELETE /tasks/{id}` 在该实例上返回 success 但不生效，任务删除走网页桥接。
-- 禅道开启强制改密策略时，网页桥接不可用：前端会明确提示"请先登录禅道网页修改密码"。
+Apache-2.0 © Tandem Contributors

@@ -74,7 +74,7 @@ export default function MainLayout({ children }: { children: React.ReactNode }) 
     );
   }
 
-  const meta = TITLE[pathname] ?? { title: "禅道指挥台", desc: "" };
+  const meta = TITLE[pathname] ?? { title: "Tandem", desc: "" };
 
   async function logout() {
     try {
@@ -104,8 +104,8 @@ export default function MainLayout({ children }: { children: React.ReactNode }) 
       {/* 侧边栏 */}
       <aside className="sidebar">
         <div className="brand">
-          <div className="brand-mark">🧭</div>
-          <div className="brand-name">禅道指挥台</div>
+          <div className="brand-mark">🚲</div>
+          <div className="brand-name">Tandem</div>
         </div>
         <div className="nav-group">工作空间</div>
         {NAV.map((n) => (
