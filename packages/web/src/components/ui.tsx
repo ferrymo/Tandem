@@ -2,15 +2,27 @@
 
 import type { TaskDto } from "@/lib/api";
 
-const AVATAR_COLORS = [
-  "#4176e6", "#0ea5e9", "#16a34a", "#d97706", "#db2777",
-  "#7c3aed", "#0891b2", "#ca8a04", "#dc2626", "#4f46e5",
+/**
+ * 头像配色（dsh 弱底色方案）：低饱和底 + 深同色系文字，
+ * 同一姓名稳定取色；与全局"无大面积高饱和"原则一致
+ */
+const AVATAR_TONES: Array<{ bg: string; fg: string }> = [
+  { bg: "#E4EDFD", fg: "#4176E6" }, // brand
+  { bg: "#E6F4F1", fg: "#0E7C6B" }, // teal
+  { bg: "#FBF0E2", fg: "#B0731E" }, // amber
+  { bg: "#F3EAFB", fg: "#7749C8" }, // violet
+  { bg: "#FDEBEC", fg: "#C43D44" }, // rose
+  { bg: "#E8F0FB", fg: "#33608F" }, // steel blue
+  { bg: "#EDF3E3", fg: "#5C7A1E" }, // olive
+  { bg: "#F6EAF4", fg: "#9B4F92" }, // plum
+  { bg: "#E9F1F4", fg: "#3C748A" }, // cyan slate
+  { bg: "#F0ECE8", fg: "#7A6A56" }, // warm gray
 ];
 
-export function hashColor(key: string): string {
+export function hashCode(s: string): number {
   let h = 0;
-  for (let i = 0; i < key.length; i++) h = (h * 31 + key.charCodeAt(i)) >>> 0;
-  return AVATAR_COLORS[h % AVATAR_COLORS.length];
+  for (let i = 0; i < s.length; i++) h = (h * 31 + s.charCodeAt(i)) >>> 0;
+  return h;
 }
 
 /** 项目配色（甘特条/圆点，按名称稳定散列，低饱和高级色板） */
@@ -23,14 +35,10 @@ const PROJECT_PALETTE = [
 export function projectColor(name: string): string {
   return PROJECT_PALETTE[hashCode(name) % PROJECT_PALETTE.length];
 }
-function hashCode(s: string): number {
-  let h = 0;
-  for (let i = 0; i < s.length; i++) h = (h * 31 + s.charCodeAt(i)) >>> 0;
-  return h;
-}
 
 export function Avatar({ name, size = 26 }: { name: string; size?: number }) {
   const text = (name || "?").slice(0, 1);
+  const tone = AVATAR_TONES[hashCode(name) % AVATAR_TONES.length];
   return (
     <span
       title={name}
@@ -38,13 +46,13 @@ export function Avatar({ name, size = 26 }: { name: string; size?: number }) {
         width: size,
         height: size,
         borderRadius: "50%",
-        background: hashColor(name),
-        color: "#fff",
+        background: tone.bg,
+        color: tone.fg,
         display: "inline-flex",
         alignItems: "center",
         justifyContent: "center",
         fontSize: size * 0.44,
-        fontWeight: 600,
+        fontWeight: 500,
         flexShrink: 0,
         lineHeight: 1,
       }}
