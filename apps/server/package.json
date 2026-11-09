@@ -1,5 +1,5 @@
 {
-  "name": "@ztp/server",
+  "name": "@tandem/server",
   "version": "0.1.0",
   "private": true,
   "type": "module",
@@ -11,7 +11,7 @@
   "dependencies": {
     "@fastify/cookie": "^9.3.1",
     "@tandem/core": "workspace:*",
-    "@ztp/zentao-sdk": "workspace:*",
+    "@tandem/adapter-zentao": "workspace:*",
     "fastify": "^4.28.1"
   },
   "devDependencies": {

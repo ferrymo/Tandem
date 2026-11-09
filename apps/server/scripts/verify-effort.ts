@@ -8,7 +8,7 @@
  *
  * 运行：ZT_ACC=xx ZT_PWD=xx ZT_TASK=3196 node --import tsx scripts/verify-effort.ts
  */
-import { WebBridge, ZentaoClient } from '@ztp/zentao-sdk'
+import { WebBridge, ZentaoClient } from '@tandem/adapter-zentao'
 
 const BASE = process.env.ZT_BASE_URL ?? 'https://chandao.medon.com.cn'
 const ACC = process.env.ZT_ACC

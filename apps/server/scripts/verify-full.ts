@@ -2,7 +2,7 @@
  * 单会话完整工时验证：认证 → 改密（解除本会话的强制跳转）→ 记工时 → API 复核 → 删除测试任务。
  * 每次运行都会把密码改为新值，运行后请以 ZT_NEW 为准。
  */
-import { WebBridge, ZentaoClient } from '@ztp/zentao-sdk'
+import { WebBridge, ZentaoClient } from '@tandem/adapter-zentao'
 
 const BASE = process.env.ZT_BASE_URL ?? 'https://chandao.medon.com.cn'
 const ACC = process.env.ZT_ACC

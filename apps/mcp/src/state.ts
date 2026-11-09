@@ -1,5 +1,5 @@
 import { randomUUID } from 'node:crypto'
-import { WebBridge, ZentaoClient, type ZtExecution, type ZtProject, type ZtTask } from '@ztp/zentao-sdk'
+import { WebBridge, ZentaoClient, type ZtExecution, type ZtProject, type ZtTask } from '@tandem/adapter-zentao'
 
 /** 草稿动作：AI 提案、人确认后才执行 */
 export type DraftAction =

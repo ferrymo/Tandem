@@ -1,4 +1,4 @@
-import { ZentaoClient, type ZtProgram } from '@ztp/zentao-sdk'
+import { ZentaoClient, type ZtProgram } from '@tandem/adapter-zentao'
 import type { FastifyInstance } from 'fastify'
 import { ttlKeyed } from '../cache.js'
 import type { Session } from '../sessions.js'

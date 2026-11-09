@@ -1,5 +1,5 @@
 /** 修改禅道密码工具：ZT_ACC=xx ZT_OLD=xx ZT_NEW=xx node --import tsx scripts/change-password.ts */
-import { WebBridge } from '@ztp/zentao-sdk'
+import { WebBridge } from '@tandem/adapter-zentao'
 
 const BASE = process.env.ZT_BASE_URL ?? 'https://chandao.medon.com.cn'
 const ACC = process.env.ZT_ACC

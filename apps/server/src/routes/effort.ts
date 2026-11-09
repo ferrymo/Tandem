@@ -1,7 +1,7 @@
 import { existsSync, mkdirSync, appendFileSync, readFileSync } from 'node:fs'
 import { resolve } from 'node:path'
 import type { FastifyInstance } from 'fastify'
-import { PasswordChangeRequiredError } from '@ztp/zentao-sdk'
+import { PasswordChangeRequiredError } from '@tandem/adapter-zentao'
 import { config } from '../config.js'
 import { getTasks } from './tasks.js'
 import type { Session } from '../sessions.js'

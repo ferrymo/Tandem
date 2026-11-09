@@ -1,4 +1,4 @@
-import { ZentaoClient, type ZtTask } from '@ztp/zentao-sdk'
+import { ZentaoClient, type ZtTask } from '@tandem/adapter-zentao'
 import type { FastifyInstance } from 'fastify'
 import { ttlKeyed } from '../cache.js'
 import { getOverview } from './overview.js'

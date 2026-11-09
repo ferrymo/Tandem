@@ -1,4 +1,4 @@
-import { PasswordChangeRequiredError, WebBridge, ZentaoClient } from '@ztp/zentao-sdk'
+import { PasswordChangeRequiredError, WebBridge, ZentaoClient } from '@tandem/adapter-zentao'
 import type { FastifyInstance } from 'fastify'
 import { config } from '../config.js'
 import { createSession, destroySession, type Session } from '../sessions.js'

@@ -1,5 +1,5 @@
 {
-  "name": "@ztp/mcp",
+  "name": "@tandem/mcp",
   "version": "0.1.0",
   "private": true,
   "type": "module",
@@ -14,7 +14,7 @@
   },
   "dependencies": {
     "@modelcontextprotocol/sdk": "^1.12.0",
-    "@ztp/zentao-sdk": "workspace:*",
+    "@tandem/adapter-zentao": "workspace:*",
     "zod": "^3.24.1"
   },
   "devDependencies": {

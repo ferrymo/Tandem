@@ -1,5 +1,5 @@
 import { randomUUID } from 'node:crypto'
-import { WebBridge, ZentaoClient } from '@ztp/zentao-sdk'
+import { WebBridge, ZentaoClient } from '@tandem/adapter-zentao'
 
 export interface Session {
   sid: string

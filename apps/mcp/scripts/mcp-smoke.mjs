@@ -166,7 +166,7 @@ try {
       await request('tools/call', { name: 'execute_changes', arguments: { draftId: closeDraft.draftId } })
     }
     // 经 SDK 桥接删除（在服务器进程外，直接用 SDK）
-    const { WebBridge, ZentaoClient } = await import('@ztp/zentao-sdk')
+    const { WebBridge, ZentaoClient } = await import('@tandem/adapter-zentao')
     const client = await ZentaoClient.login(BASE, ACC, PWD)
     const bridge = new WebBridge(BASE)
     try {

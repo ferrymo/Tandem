@@ -11,7 +11,7 @@
  */
 import { StdioServerTransport } from '@modelcontextprotocol/sdk/server/stdio.js'
 import { McpServer } from '@modelcontextprotocol/sdk/server/mcp.js'
-import { WebBridge, ZentaoClient } from '@ztp/zentao-sdk'
+import { WebBridge, ZentaoClient } from '@tandem/adapter-zentao'
 import { ZtState } from './state.js'
 import { registerDraftTools, registerReadTools } from './tools.js'
 

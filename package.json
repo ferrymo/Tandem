@@ -5,12 +5,12 @@
   "type": "module",
   "description": "Tandem · 面向多团队多项目，让人与 AI Agent 共同规划、执行和交付的开源协作平台",
   "scripts": {
-    "dev:server": "pnpm --filter @ztp/server dev",
-    "dev:web": "pnpm --filter web dev",
-    "build": "pnpm --filter web build",
-    "start": "pnpm --filter @ztp/server start",
-    "start:web": "pnpm --filter web start",
-    "build:mcp": "pnpm --filter @ztp/mcp build"
+    "dev:server": "pnpm --filter @tandem/server dev",
+    "dev:web": "pnpm --filter @tandem/web dev",
+    "build": "pnpm --filter @tandem/web build",
+    "start": "pnpm --filter @tandem/server start",
+    "start:web": "pnpm --filter @tandem/web start",
+    "build:mcp": "pnpm --filter @tandem/mcp build"
   },
   "engines": {
     "node": ">=20"

@@ -1,6 +1,6 @@
 import Fastify from 'fastify'
 import cookie from '@fastify/cookie'
-import {PasswordChangeRequiredError, ZentaoError} from '@ztp/zentao-sdk'
+import {PasswordChangeRequiredError, ZentaoError} from '@tandem/adapter-zentao'
 import {config} from './config.js'
 import {destroyExpired, getSession, type Session} from './sessions.js'
 import {authRoutes} from './routes/auth.js'
