@@ -12,7 +12,8 @@
     "@fastify/cookie": "^9.3.1",
     "@tandem/core": "workspace:*",
     "@tandem/adapter-zentao": "workspace:*",
-    "fastify": "^4.28.1"
+    "fastify": "^4.28.1",
+    "@tandem/agent-runtime": "workspace:*"
   },
   "devDependencies": {
     "@types/node": "^20.16.0",

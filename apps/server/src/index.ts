@@ -8,6 +8,7 @@ import {overviewRoutes} from './routes/overview.js'
 import {taskRoutes} from './routes/tasks.js'
 import {effortRoutes} from './routes/effort.js'
 import {adminRoutes} from './routes/admin.js'
+import {agentRoutes} from './routes/agents.js'
 
 declare module 'fastify' {
   interface FastifyRequest {
@@ -31,6 +32,7 @@ await app.register(overviewRoutes)
 await app.register(taskRoutes)
 await app.register(effortRoutes)
 await app.register(adminRoutes)
+await app.register(agentRoutes)
 
 app.setErrorHandler((err, _req, reply) => {
   if (err instanceof PasswordChangeRequiredError) {

@@ -74,6 +74,40 @@ CREATE TABLE IF NOT EXISTS group_permissions (
   group_id INTEGER PRIMARY KEY REFERENCES project_groups(id) ON DELETE CASCADE,
   viewers TEXT NOT NULL DEFAULT ''
 );
+CREATE TABLE IF NOT EXISTS runs (
+  id TEXT PRIMARY KEY,
+  agent_id INTEGER NOT NULL,
+  agent_name TEXT NOT NULL,
+  owner_account TEXT NOT NULL,
+  goal TEXT NOT NULL,
+  status TEXT NOT NULL DEFAULT 'running',
+  steps INTEGER NOT NULL DEFAULT 0,
+  max_steps INTEGER NOT NULL DEFAULT 8,
+  error TEXT,
+  summary TEXT,
+  created_at INTEGER NOT NULL,
+  finished_at INTEGER
+);
+CREATE TABLE IF NOT EXISTS run_steps (
+  id INTEGER PRIMARY KEY AUTOINCREMENT,
+  run_id TEXT NOT NULL REFERENCES runs(id) ON DELETE CASCADE,
+  seq INTEGER NOT NULL,
+  kind TEXT NOT NULL,
+  title TEXT NOT NULL,
+  detail TEXT,
+  created_at INTEGER NOT NULL
+);
+CREATE TABLE IF NOT EXISTS drafts (
+  id TEXT PRIMARY KEY,
+  source TEXT NOT NULL,
+  actor TEXT NOT NULL,
+  run_id TEXT,
+  status TEXT NOT NULL DEFAULT 'pending',
+  actions TEXT NOT NULL,
+  checks TEXT NOT NULL,
+  results TEXT,
+  created_at INTEGER NOT NULL
+);
 `
 
 type Row = Record<string, unknown>
@@ -338,6 +372,135 @@ export class TandemStore {
       [groupId, joinTags(viewers)],
     )
   }
+
+  // ---------- Agent 运行（runs / steps） ----------
+
+  createRun(input: {id: string; agentId: number; agentName: string; ownerAccount: string; goal: string; maxSteps: number}): void {
+    this.run(
+      'INSERT INTO runs (id, agent_id, agent_name, owner_account, goal, status, steps, max_steps, created_at) VALUES (?, ?, ?, ?, ?, ?, 0, ?, ?)',
+      [input.id, input.agentId, input.agentName, input.ownerAccount, input.goal, 'running', input.maxSteps, Date.now()],
+    )
+  }
+
+  updateRun(id: string, patch: {status?: string; steps?: number; error?: string | null; summary?: string | null}) {
+    const cur = this.get<{status: string; steps: number}>('SELECT status, steps FROM runs WHERE id = ?', [id])
+    if (!cur) return
+    const done = patch.status && patch.status !== 'running'
+    this.run('UPDATE runs SET status = ?, steps = ?, error = ?, summary = ?, finished_at = ? WHERE id = ?', [
+      patch.status ?? cur.status,
+      patch.steps ?? cur.steps,
+      patch.error ?? null,
+      patch.summary ?? null,
+      done ? Date.now() : null,
+      id,
+    ])
+  }
+
+  addRunStep(runId: string, kind: string, title: string, detail?: unknown) {
+    const seq = Number(
+      (this.get<{n: number}>('SELECT COALESCE(MAX(seq), 0) + 1 AS n FROM run_steps WHERE run_id = ?', [runId])?.n ?? 1),
+    )
+    this.run('INSERT INTO run_steps (run_id, seq, kind, title, detail, created_at) VALUES (?, ?, ?, ?, ?, ?)', [
+      runId,
+      seq,
+      kind,
+      title,
+      detail === undefined ? null : JSON.stringify(detail),
+      Date.now(),
+    ])
+  }
+
+  getRun(id: string): (AgentRun & {stepsList: RunStep[]}) | undefined {
+    const row = this.get<Row>(
+      'SELECT id, agent_id AS agentId, agent_name AS agentName, owner_account AS ownerAccount, goal, status, steps, max_steps AS maxSteps, error, summary, created_at AS createdAt, finished_at AS finishedAt FROM runs WHERE id = ?',
+      [id],
+    )
+    if (!row) return undefined
+    const stepsList = this.all<Row>('SELECT seq, kind, title, detail, created_at AS createdAt FROM run_steps WHERE run_id = ? ORDER BY seq', [id]).map((s) => ({
+      seq: s.seq as number,
+      kind: s.kind as string,
+      title: s.title as string,
+      detail: s.detail ? JSON.parse(s.detail as string) : undefined,
+      createdAt: s.created_at as number,
+    }))
+    return {...(row as unknown as AgentRun), stepsList}
+  }
+
+  listRuns(limit = 30): AgentRun[] {
+    return this.all<AgentRun>(
+      'SELECT id, agent_id AS agentId, agent_name AS agentName, owner_account AS ownerAccount, goal, status, steps, max_steps AS maxSteps, error, summary, created_at AS createdAt, finished_at AS finishedAt FROM runs ORDER BY created_at DESC LIMIT ?',
+      [limit],
+    )
+  }
+
+  // ---------- 草案持久化 ----------
+
+  saveDraft(d: {id: string; source: string; actor: string; runId?: string; actions: unknown; checks: unknown}) {
+    this.run('INSERT INTO drafts (id, source, actor, run_id, status, actions, checks, created_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?)', [
+      d.id,
+      d.source,
+      d.actor,
+      d.runId ?? null,
+      'pending',
+      JSON.stringify(d.actions),
+      JSON.stringify(d.checks),
+      Date.now(),
+    ])
+  }
+
+  getDraftRow(id: string): {id: string; source: string; actor: string; runId: string | null; status: string; actions: unknown[]; checks: unknown[]; results: unknown[] | null} | undefined {
+    const r = this.get<Row>('SELECT * FROM drafts WHERE id = ?', [id])
+    if (!r) return undefined
+    return {
+      id: r.id as string,
+      source: r.source as string,
+      actor: r.actor as string,
+      runId: (r.run_id as string) ?? null,
+      status: r.status as string,
+      actions: JSON.parse(r.actions as string),
+      checks: JSON.parse(r.checks as string),
+      results: r.results ? JSON.parse(r.results as string) : null,
+    }
+  }
+
+  setDraftStatus(id: string, status: string, results?: unknown) {
+    this.run('UPDATE drafts SET status = ?, results = ? WHERE id = ?', [status, results ? JSON.stringify(results) : null, id])
+  }
+
+  listPendingDrafts(): Array<{id: string; source: string; actor: string; runId: string | null; actions: unknown[]; checks: unknown[]; createdAt: number}> {
+    return this.all<Row>("SELECT * FROM drafts WHERE status = 'pending' ORDER BY created_at DESC").map((r) => ({
+      id: r.id as string,
+      source: r.source as string,
+      actor: r.actor as string,
+      runId: (r.run_id as string) ?? null,
+      actions: JSON.parse(r.actions as string),
+      checks: JSON.parse(r.checks as string),
+      createdAt: r.created_at as number,
+    }))
+  }
+}
+
+export interface AgentRun {
+  id: string
+  agentId: number
+  agentName: string
+  ownerAccount: string
+  goal: string
+  status: 'running' | 'waiting_approval' | 'done' | 'failed' | 'stopped'
+  steps: number
+  maxSteps: number
+  error?: string | null
+  summary?: string | null
+  createdAt: number
+  finishedAt?: number | null
+}
+
+export interface RunStep {
+  seq: number
+  kind: string
+  title: string
+  detail?: unknown
+  createdAt: number
 }
 
 export async function defaultStore(dataDir: string): Promise<TandemStore> {

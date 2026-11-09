@@ -12,6 +12,10 @@ importers:
   .: {}
 
   adapters/zentao:
+    dependencies:
+      '@tandem/core':
+        specifier: workspace:*
+        version: link:../../packages/core
     devDependencies:
       '@types/node':
         specifier: ^20.16.0
@@ -53,6 +57,9 @@ importers:
       '@tandem/adapter-zentao':
         specifier: workspace:*
         version: link:../../adapters/zentao
+      '@tandem/agent-runtime':
+        specifier: workspace:*
+        version: link:../../packages/agent-runtime
       '@tandem/core':
         specifier: workspace:*
         version: link:../../packages/core
@@ -117,6 +124,19 @@ importers:
         version: 4.3.5
       typescript:
         specifier: ^5
+        version: 5.9.3
+
+  packages/agent-runtime:
+    dependencies:
+      '@tandem/core':
+        specifier: workspace:*
+        version: link:../core
+    devDependencies:
+      '@types/node':
+        specifier: ^20.16.0
+        version: 20.19.43
+      typescript:
+        specifier: ^5.6.3
         version: 5.9.3
 
   packages/core:

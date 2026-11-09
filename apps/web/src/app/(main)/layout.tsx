@@ -9,6 +9,7 @@ import {
   FolderOutlined,
   LogoutOutlined,
   RobotOutlined,
+  PlayCircleOutlined,
   SearchOutlined,
   TeamOutlined,
   ThunderboltOutlined,
@@ -29,6 +30,7 @@ const NAV = [
   { key: "/projects", icon: <FolderOutlined />, label: "项目", leadOnly: true },
   { key: "/teams", icon: <TeamOutlined />, label: "团队", leadOnly: true },
   { key: "/agents", icon: <RobotOutlined />, label: "Agents", leadOnly: true },
+  { key: "/runs", icon: <PlayCircleOutlined />, label: "Agent 运行", leadOnly: true },
 ];
 
 const TITLE: Record<string, { title: string; desc: string }> = {
@@ -39,6 +41,7 @@ const TITLE: Record<string, { title: string; desc: string }> = {
   "/projects": { title: "项目", desc: "分组树组织全部项目；分组即数据权限边界" },
   "/teams": { title: "团队", desc: "成员可以是人和 Agent——在这里是平等的协作者" },
   "/agents": { title: "Agents", desc: "维护你的 AI Agent 团队——能力、skills 与挂靠人" },
+  "/runs": { title: "Agent 运行", desc: "给目标，Agent 自主循环；关键处停下等你决策" },
 };
 
 export default function MainLayout({ children }: { children: React.ReactNode }) {
