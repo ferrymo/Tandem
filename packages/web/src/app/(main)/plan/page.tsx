@@ -1,14 +1,21 @@
 "use client";
 
 import { useCallback, useEffect, useMemo, useState } from "react";
-import { App as AntdApp, Button, DatePicker, Select, Spin, Table, Tag, Tooltip } from "antd";
+import { App as AntdApp, Button, DatePicker, Empty, Segmented, Select, Spin, Tooltip } from "antd";
 import dayjs, { type Dayjs } from "dayjs";
 import { api, type TaskDto } from "@/lib/api";
 import { useUser } from "@/lib/user";
-import { Avatar, projectColor } from "@/components/ui";
+import { Avatar } from "@/components/ui";
 
-const DAY_W = 40;
+const DAY_W = 36;
 const ACTIVE = ["wait", "doing", "pause"];
+
+/** 任务条配色：状态驱动（低饱和、无渐变），唯一强调色留给"进行中" */
+const BAR_STYLE: Record<string, { bg: string; fg: string }> = {
+  doing: { bg: "var(--brand-500)", fg: "#fff" },
+  wait: { bg: "var(--line-strong)", fg: "var(--ink-2)" },
+  pause: { bg: "var(--warn-weak)", fg: "#b45309" },
+};
 
 interface Bar {
   task: TaskDto;
@@ -23,12 +30,12 @@ interface Bar {
 interface PersonPlan {
   account: string;
   realname: string;
-  projects: string[];
+  projectCount: number;
   activeCount: number;
   unscheduled: number;
-  latestDeadline: string;
   freeFrom: string;
   freeSoon: boolean;
+  loadLeft: number;
   bars: Bar[];
 }
 
@@ -42,6 +49,7 @@ export default function PlanPage() {
   const [tasks, setTasks] = useState<TaskDto[]>([]);
   const [users, setUsers] = useState<Array<{ account: string; realname: string }>>([]);
   const [loading, setLoading] = useState(false);
+  const [sortBy, setSortBy] = useState<string>("free");
 
   const reload = useCallback(async () => {
     if (!user) return;
@@ -124,30 +132,29 @@ export default function PlanPage() {
         });
       }
       bars.sort((a, b) => a.start.valueOf() - b.start.valueOf());
-      const futureDeadlines = list
-        .filter((t) => t.deadline && t.deadline >= todayStr)
-        .map((t) => t.deadline)
-        .sort();
-      const allDeadlines = list.map((t) => t.deadline).filter(Boolean).sort();
+      const futureDeadlines = list.filter((t) => t.deadline && t.deadline >= todayStr).map((t) => t.deadline).sort();
+      const loadLeft = list.reduce((a, t) => a + t.left, 0);
       result.push({
         account,
         realname,
-        projects: [...new Set(list.map((t) => t.projectName))],
+        projectCount: new Set(list.map((t) => t.projectId)).size,
         activeCount: list.length,
         unscheduled,
-        latestDeadline: allDeadlines[allDeadlines.length - 1] ?? "",
         freeFrom: futureDeadlines.length
           ? dayjs(futureDeadlines[futureDeadlines.length - 1]).add(1, "day").format("MM-DD")
           : list.length
             ? "待排期"
             : "现在有空",
         freeSoon: futureDeadlines.length === 0,
+        loadLeft,
         bars,
       });
     }
-    result.sort((a, b) => a.freeFrom.localeCompare(b.freeFrom) || b.activeCount - a.activeCount);
+    result.sort((a, b) =>
+      sortBy === "load" ? b.loadLeft - a.loadLeft : a.freeFrom.localeCompare(b.freeFrom) || b.activeCount - a.activeCount,
+    );
     return result;
-  }, [tasks, from, to, todayStr]);
+  }, [tasks, from, to, todayStr, sortBy]);
 
   const shown = useMemo(() => {
     if (!selected || selected.length === 0) return plans;
@@ -158,30 +165,12 @@ export default function PlanPage() {
   const offsetOf = (d: Dayjs) => d.diff(from, "day") * DAY_W;
   const todayIdx = dayjs().isBefore(from, "day") || dayjs().isAfter(to, "day") ? -1 : dayjs().diff(from, "day");
 
-  const barTooltip = (b: Bar) => (
-    <div style={{ maxWidth: 340, fontSize: 12 }}>
-      <div style={{ fontWeight: 600 }}>{b.task.name}</div>
-      <div style={{ marginTop: 3 }}>
-        {b.task.projectName} · {b.task.executionName}
-      </div>
-      <div>
-        排期：{b.task.estStarted || "未填"} → {b.task.deadline || "未填"}
-        {b.clampedLeft ? "（早于视图）" : ""}
-        {b.clampedRight ? "（晚于视图）" : ""}
-      </div>
-      <div>
-        状态 {b.task.status} · 剩余 {b.task.left}h
-      </div>
-      {b.overdue && <div style={{ color: "#ef4444" }}>⚠ 已逾期</div>}
-    </div>
-  );
-
   return (
     <div className="page">
       <div className="page-header">
         <div>
           <div className="page-title">排期</div>
-          <div className="page-desc">成员任务排期与空档规划——颜色为项目，红框为逾期，竖线为今天</div>
+          <div className="page-desc">成员任务排期与空档——蓝为进行中，灰为待开始，斜纹为已逾期</div>
         </div>
         <Button onClick={() => reload()}>刷新</Button>
       </div>
@@ -197,155 +186,184 @@ export default function PlanPage() {
             mode="multiple"
             allowClear
             placeholder="全部成员"
-            style={{ minWidth: 280, maxWidth: 560 }}
+            style={{ minWidth: 260, maxWidth: 520 }}
             value={selected}
             onChange={setSelected}
             options={users.map((u) => ({ value: u.account, label: u.realname }))}
             maxTagCount="responsive"
           />
         )}
-        <span style={{ fontSize: 12.5, color: "var(--text-2)" }}>
+        <div style={{ flex: 1 }} />
+        <Segmented
+          value={sortBy}
+          onChange={(v) => setSortBy(v as string)}
+          options={[
+            { value: "free", label: "按空档" },
+            { value: "load", label: "按负载" },
+          ]}
+        />
+        <span style={{ fontSize: 12.5, color: "var(--ink-2)" }}>
           {shown.length} 人 · {shown.reduce((a, p) => a + p.bars.length, 0)} 条排期
         </span>
       </div>
 
-      {/* 空档速览 */}
-      <div style={{ display: "flex", gap: 8, flexWrap: "wrap", marginBottom: 14 }}>
-        {shown.slice(0, 12).map((p) => (
-          <span
-            key={p.account}
-            style={{
-              display: "inline-flex",
-              alignItems: "center",
-              gap: 6,
-              padding: "4px 10px",
-              borderRadius: 999,
-              border: "1px solid var(--border)",
-              background: "var(--surface)",
-              fontSize: 12.5,
-            }}
-          >
-            <Avatar name={p.realname} size={20} />
-            {p.realname}
-            <Tag color={p.freeSoon ? "success" : "default"} style={{ borderRadius: 999, marginInlineEnd: 0 }}>
-              {p.freeSoon} 起空闲
-            </Tag>
-          </span>
-        ))}
-      </div>
-
       <Spin spinning={loading}>
-        <div className="card" style={{ padding: 0, overflow: "auto", maxHeight: "calc(100vh - 300px)" }}>
-          <div style={{ minWidth: gridW + 250 }}>
-            {/* 日期标尺 */}
-            <div style={{ display: "flex" }}>
-              <div
-                className="tl-name"
-                style={{ width: 250, minWidth: 250, height: 40, fontWeight: 650, color: "var(--text-2)", background: "#fafafc", position: "sticky", top: 0, zIndex: 2 }}
-              >
-                成员
-              </div>
-              {days.map((d) => (
+        {plans.length === 0 && !loading ? (
+          <div className="card"><Empty description="没有进行中的任务排期" style={{ padding: 40 }} /></div>
+        ) : (
+          <div className="card" style={{ padding: 0, overflow: "auto", maxHeight: "calc(100vh - 250px)" }}>
+            <div style={{ minWidth: gridW + 280 }}>
+              {/* 日期标尺 */}
+              <div style={{ display: "flex", position: "sticky", top: 0, zIndex: 2, background: "var(--card)" }}>
                 <div
-                  key={d.format("YYYY-MM-DD")}
-                  style={{
-                    width: DAY_W,
-                    height: 40,
-                    flexShrink: 0,
-                    textAlign: "center",
-                    fontSize: 11,
-                    lineHeight: "15px",
-                    paddingTop: 5,
-                    background: [0, 6].includes(d.day())
-                      ? "#fafafa"
-                      : d.isSame(dayjs(), "day")
-                        ? "var(--accent-weak)"
-                        : "#fafafc",
-                    color: d.isSame(dayjs(), "day") ? "#4747b8" : "var(--text-2)",
-                    fontWeight: d.isSame(dayjs(), "day") ? 700 : 400,
-                    borderBottom: "1px solid var(--border)",
-                  }}
+                  className="tl-name"
+                  style={{ width: 280, minWidth: 280, height: 44, background: "var(--bg)", fontWeight: 500, color: "var(--ink-2)", zIndex: 3 }}
                 >
-                  <div>{d.format("M/D")}</div>
-                  <div style={{ color: "var(--text-3)" }}>{"日一二三四五六"[d.day()]}</div>
+                  成员
                 </div>
-              ))}
-            </div>
-
-            {shown.map((p) => {
-              const lanes = Math.max(1, ...p.bars.map((b) => b.lane + 1));
-              const rowH = lanes * 30 + 12;
-              return (
-                <div key={p.account} style={{ display: "flex", borderBottom: "1px solid #f2f2f6" }}>
+                {days.map((d) => (
                   <div
-                    className="tl-name"
-                    style={{ width: 250, minWidth: 250, height: rowH, justifyContent: "space-between" }}
+                    key={d.format("YYYY-MM-DD")}
+                    style={{
+                      width: DAY_W,
+                      height: 44,
+                      flexShrink: 0,
+                      textAlign: "center",
+                      fontSize: 11,
+                      lineHeight: "16px",
+                      paddingTop: 6,
+                      background: d.isSame(dayjs(), "day")
+                        ? "var(--brand-50)"
+                        : [0, 6].includes(d.day())
+                          ? "var(--bg)"
+                          : "var(--bg)",
+                      color: d.isSame(dayjs(), "day") ? "var(--brand-500)" : "var(--ink-2)",
+                      fontWeight: d.isSame(dayjs(), "day") ? 600 : 400,
+                      borderBottom: "0.5px solid var(--line)",
+                    }}
                   >
-                    <span style={{ display: "flex", alignItems: "center", gap: 8 }}>
+                    <div>{d.format("M/D")}</div>
+                    <div style={{ color: "var(--ink-3)" }}>{"日一二三四五六"[d.day()]}</div>
+                  </div>
+                ))}
+              </div>
+
+              {shown.map((p) => {
+                const lanes = Math.max(1, ...p.bars.map((b) => b.lane + 1));
+                const rowH = lanes * 28 + 10;
+                return (
+                  <div key={p.account} style={{ display: "flex", borderBottom: "0.5px solid var(--layer-2)" }}>
+                    {/* 成员信息列 */}
+                    <div className="tl-name" style={{ width: 280, minWidth: 280, height: rowH, gap: 10 }}>
                       <Avatar name={p.realname} size={26} />
-                      <span style={{ fontWeight: 600 }}>{p.realname}</span>
-                    </span>
-                    <span style={{ fontSize: 11, color: "var(--text-3)" }}>{p.activeCount} 任务</span>
-                  </div>
-                  <div style={{ position: "relative", width: gridW, height: rowH, flexShrink: 0 }}>
-                    {days.map((d, i) => (
-                      <div
-                        key={i}
-                        style={{
-                          position: "absolute",
-                          left: i * DAY_W,
-                          top: 0,
-                          width: DAY_W,
-                          height: rowH,
-                          background: [0, 6].includes(d.day()) ? "#fafbfc" : undefined,
-                          borderRight: "1px solid #f5f5f8",
-                        }}
-                      />
-                    ))}
-                    {todayIdx >= 0 && (
-                      <div
-                        style={{
-                          position: "absolute",
-                          left: todayIdx * DAY_W + DAY_W / 2,
-                          top: 0,
-                          width: 2,
-                          height: rowH,
-                          background: "#ef4444",
-                          opacity: 0.55,
-                          zIndex: 1,
-                        }}
-                      />
-                    )}
-                    {p.bars.map((b) => {
-                      const left = offsetOf(b.start);
-                      const width = Math.max((b.end.diff(b.start, "day") + 1) * DAY_W - 4, 8);
-                      return (
-                        <Tooltip key={b.task.id} title={barTooltip(b)}>
-                          <div
-                            className={`gantt-bar${b.overdue ? " gantt-bar-overdue" : ""}`}
-                            style={{
-                              left: left + 2,
-                              width,
-                              top: 6 + b.lane * 30,
-                              background: projectColor(b.task.projectName),
-                            }}
+                      <div style={{ minWidth: 0, flex: 1 }}>
+                        <div style={{ fontSize: 13, fontWeight: 500, display: "flex", alignItems: "center", gap: 6 }}>
+                          {p.realname}
+                          {p.freeSoon ? (
+                            <span style={{ fontSize: 11, color: "var(--ok)" }}>有空档</span>
+                          ) : p.unscheduled > 0 ? (
+                            <span style={{ fontSize: 11, color: "var(--warn)" }}>{p.unscheduled} 未排</span>
+                          ) : null}
+                        </div>
+                        <div style={{ fontSize: 11.5, color: "var(--ink-3)", marginTop: 2 }}>
+                          {p.projectCount} 项目 · 余 {p.loadLeft}h
+                          {!p.freeSoon && ` · ${p.freeFrom} 起空闲`}
+                        </div>
+                      </div>
+                    </div>
+                    {/* 甘特区 */}
+                    <div style={{ position: "relative", width: gridW, height: rowH, flexShrink: 0 }}>
+                      {days.map((d, i) => (
+                        <div
+                          key={i}
+                          style={{
+                            position: "absolute",
+                            left: i * DAY_W,
+                            top: 0,
+                            width: DAY_W,
+                            height: rowH,
+                            background: [0, 6].includes(d.day()) ? "var(--bg)" : undefined,
+                            borderRight: "0.5px solid var(--layer-2)",
+                          }}
+                        />
+                      ))}
+                      {todayIdx >= 0 && (
+                        <div
+                          style={{
+                            position: "absolute",
+                            left: todayIdx * DAY_W + DAY_W / 2,
+                            top: 0,
+                            width: 1.5,
+                            height: rowH,
+                            background: "var(--bad)",
+                            opacity: 0.45,
+                            zIndex: 1,
+                          }}
+                        />
+                      )}
+                      {p.bars.map((b) => {
+                        const left = offsetOf(b.start);
+                        const width = Math.max((b.end.diff(b.start, "day") + 1) * DAY_W - 4, 8);
+                        const st = BAR_STYLE[b.task.status] ?? BAR_STYLE.wait;
+                        return (
+                          <Tooltip
+                            key={b.task.id}
+                            title={
+                              <div style={{ maxWidth: 320, fontSize: 12 }}>
+                                <div style={{ fontWeight: 500 }}>{b.task.name}</div>
+                                <div style={{ marginTop: 3, color: "var(--ink-2)" }}>
+                                  {b.task.projectName} · {b.task.executionName}
+                                </div>
+                                <div style={{ marginTop: 2, color: "var(--ink-2)" }}>
+                                  {b.task.estStarted || "未填"} → {b.task.deadline || "未填"} · 余 {b.task.left}h
+                                </div>
+                                {b.overdue && <div style={{ color: "#ef4444", marginTop: 2 }}>已逾期</div>}
+                              </div>
+                            }
                           >
-                            {b.clampedLeft ? "◀ " : ""}
-                            {b.task.name}
-                          </div>
-                        </Tooltip>
-                      );
-                    })}
+                            <div
+                              style={{
+                                position: "absolute",
+                                left: left + 2,
+                                width,
+                                top: 5 + b.lane * 28,
+                                height: 20,
+                                borderRadius: 5,
+                                background: st.bg,
+                                color: st.fg,
+                                fontSize: 11,
+                                fontWeight: 400,
+                                lineHeight: "20px",
+                                padding: "0 7px",
+                                overflow: "hidden",
+                                whiteSpace: "nowrap",
+                                textOverflow: "ellipsis",
+                                cursor: "pointer",
+                                ...(b.overdue
+                                  ? {
+                                      backgroundImage:
+                                        "repeating-linear-gradient(135deg, transparent 0 4px, rgb(239 68 68 / 18%) 4px 8px)",
+                                    }
+                                  : {}),
+                              }}
+                            >
+                              {b.clampedLeft ? "‹ " : ""}
+                              {b.task.name}
+                            </div>
+                          </Tooltip>
+                        );
+                      })}
+                    </div>
                   </div>
-                </div>
-              );
-            })}
-            {shown.length === 0 && !loading && <div className="empty-hint">范围内没有进行中的任务排期</div>}
+                );
+              })}
+            </div>
           </div>
-        </div>
+        )}
       </Spin>
-      <div style={{ marginTop: 10, fontSize: 12, color: "var(--text-3)" }}>
-        提示：禅道任务普遍缺少「预计开始/截止」，未填日期的任务计入上方「待排期」——建议团队规范：任务必须填截止日期。
+
+      <div style={{ marginTop: 10, fontSize: 12, color: "var(--ink-3)" }}>
+        提示：禅道任务普遍缺少「预计开始/截止」，未填日期的任务计入「未排」——建议团队规范：任务必须填截止日期。
       </div>
     </div>
   );

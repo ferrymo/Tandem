@@ -31,6 +31,8 @@ export const config = {
   dataDir: resolve(process.cwd(), 'data'),
 }
 
+export const storeConfig = {file: resolve(config.dataDir, 'tandem.db')}
+
 if (!config.ztBaseUrl) {
   console.error('缺少 ZT_BASE_URL 配置，请参考 .env.example 创建 .env')
   process.exit(1)

@@ -6,8 +6,11 @@ import {
   AppstoreOutlined,
   CalendarOutlined,
   ClockCircleOutlined,
+  FolderOutlined,
   LogoutOutlined,
+  RobotOutlined,
   SearchOutlined,
+  TeamOutlined,
   ThunderboltOutlined,
 } from "@ant-design/icons";
 import { App as AntdApp, Button, Dropdown, Spin } from "antd";
@@ -23,6 +26,9 @@ const NAV = [
   { key: "/board", icon: <AppstoreOutlined />, label: "任务" },
   { key: "/effort", icon: <ClockCircleOutlined />, label: "工时" },
   { key: "/plan", icon: <CalendarOutlined />, label: "排期" },
+  { key: "/projects", icon: <FolderOutlined />, label: "项目", leadOnly: true },
+  { key: "/teams", icon: <TeamOutlined />, label: "团队", leadOnly: true },
+  { key: "/agents", icon: <RobotOutlined />, label: "Agents", leadOnly: true },
 ];
 
 const TITLE: Record<string, { title: string; desc: string }> = {
@@ -30,6 +36,9 @@ const TITLE: Record<string, { title: string; desc: string }> = {
   "/board": { title: "任务", desc: "跨项目任务看板与流转" },
   "/effort": { title: "工时", desc: "填报、时间轴与统计分析" },
   "/plan": { title: "排期", desc: "成员任务排期与空档规划" },
+  "/projects": { title: "项目", desc: "分组树组织全部项目；分组即数据权限边界" },
+  "/teams": { title: "团队", desc: "成员可以是人和 Agent——在这里是平等的协作者" },
+  "/agents": { title: "Agents", desc: "维护你的 AI Agent 团队——能力、skills 与挂靠人" },
 };
 
 export default function MainLayout({ children }: { children: React.ReactNode }) {
@@ -108,7 +117,18 @@ export default function MainLayout({ children }: { children: React.ReactNode }) 
           <Logo />
         </div>
         <div className="nav-group">工作空间</div>
-        {NAV.map((n) => (
+        {NAV.filter((n) => !("leadOnly" in n && n.leadOnly) || user.lead).map((n) => (
+          <div
+            key={n.key}
+            className={`nav-item${pathname === n.key ? " active" : ""}`}
+            onClick={() => router.push(n.key)}
+          >
+            <span style={{ fontSize: 15 }}>{n.icon}</span>
+            {n.label}
+          </div>
+        ))}
+        {user.lead && <div className="nav-group">管理</div>}
+        {NAV.filter((n) => "leadOnly" in n && n.leadOnly && user.lead).map((n) => (
           <div
             key={n.key}
             className={`nav-item${pathname === n.key ? " active" : ""}`}
