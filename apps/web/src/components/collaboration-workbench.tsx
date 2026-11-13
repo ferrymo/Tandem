@@ -1,13 +1,18 @@
 'use client';
-import { useCallback, useEffect, useState } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 import { Button, Modal } from 'antd';
 import { LoginPanel } from './login-panel';
+import { ProductWorkspace } from './product-workspace';
 import {
   CreateWorkspaceDialog,
   LoadingRows,
   MembersDialog,
 } from './workspace-dialogs';
 import { Brand, NavIcon } from './workbench-icons';
+import {
+  guardUnsavedNavigation,
+  hasUnsavedChanges,
+} from './use-unsaved-changes';
 import {
   ApiError,
   api,
@@ -34,6 +39,24 @@ function locationFor(view: View, workspaceId: string) {
   if (workspaceId) query.set('workspace', workspaceId);
   return '/?' + query.toString();
 }
+function nativeHistoryIndex() {
+  const index = (
+    window as Window & {
+      navigation?: { currentEntry?: { index?: number } };
+    }
+  ).navigation?.currentEntry?.index;
+  return typeof index === 'number' && Number.isInteger(index) && index >= 0
+    ? index
+    : null;
+}
+function indexedState(index: number, historyId: string) {
+  const state = window.history.state;
+  return {
+    ...(state && typeof state === 'object' ? state : {}),
+    tandemIndex: index,
+    tandemHistoryId: historyId,
+  };
+}
 
 export function CollaborationWorkbench() {
   const [session, setSession] = useState<Session | null>(null);
@@ -53,21 +76,137 @@ export function CollaborationWorkbench() {
   const [loggingOut, setLoggingOut] = useState(false);
   const [accountError, setAccountError] = useState('');
   const [copied, setCopied] = useState(false);
+  const [navigationNotice, setNavigationNotice] = useState('');
+  const currentIndex = useRef(0);
+  const historyId = useRef('');
+  const currentUrl = useRef('');
+  const restoring = useRef<{ from: number; to: number; delta: number } | null>(
+    null,
+  );
+  const acceptedTraversal = useRef<number | null>(null);
   const user = session?.user;
+
+  function replaceLocation(url: string) {
+    window.history.replaceState(
+      indexedState(currentIndex.current, historyId.current),
+      '',
+      url,
+    );
+    currentUrl.current = window.location.href;
+  }
+  function pushLocation(url: string) {
+    if (currentUrl.current !== window.location.href) {
+      // An unindexed legacy traversal has no safe offset on older browsers.
+      // Start a new segment rather than guessing an offset into the old one.
+      historyId.current = crypto.randomUUID();
+      currentIndex.current = nativeHistoryIndex() ?? 0;
+      window.history.replaceState(
+        indexedState(currentIndex.current, historyId.current),
+        '',
+      );
+    }
+    currentIndex.current += 1;
+    window.history.pushState(
+      indexedState(currentIndex.current, historyId.current),
+      '',
+      url,
+    );
+    const nativeIndex = nativeHistoryIndex();
+    if (nativeIndex !== null) {
+      // Browsers may evict old entries once their history limit is reached.
+      currentIndex.current = nativeIndex;
+      window.history.replaceState(
+        indexedState(nativeIndex, historyId.current),
+        '',
+      );
+    }
+    currentUrl.current = window.location.href;
+    setNavigationNotice('');
+  }
 
   useEffect(() => {
     const sync = () => {
       setView(readView());
-      setWorkspaceId(
-        new URLSearchParams(window.location.search).get('workspace') ?? '',
+      const nextWorkspace =
+        new URLSearchParams(window.location.search).get('workspace') ?? '';
+      setWorkspaceId(nextWorkspace);
+      setOverview((current) =>
+        current?.workspace.id === nextWorkspace ? current : null,
       );
-      setOverview(null);
       setMembersOpen(false);
       setMenuOpen(false);
     };
+    const state = window.history.state;
+    historyId.current =
+      typeof state?.tandemHistoryId === 'string'
+        ? state.tandemHistoryId
+        : crypto.randomUUID();
+    currentIndex.current =
+      nativeHistoryIndex() ??
+      (Number.isInteger(state?.tandemIndex) ? state.tandemIndex : 0);
+    window.history.replaceState(
+      indexedState(currentIndex.current, historyId.current),
+      '',
+    );
+    currentUrl.current = window.location.href;
+    const onPop = (event: PopStateEvent) => {
+      const state = event.state;
+      const index =
+        nativeHistoryIndex() ??
+        (state?.tandemHistoryId === historyId.current &&
+        Number.isInteger(state?.tandemIndex)
+          ? (state.tandemIndex as number)
+          : null);
+      if (index === null) {
+        if (hasUnsavedChanges()) {
+          setNavigationNotice(
+            '浏览器无法安全恢复此历史位置，当前输入仍保留。地址栏暂显示目标地址，请先保存或关闭编辑器，再使用页面导航。',
+          );
+          return;
+        }
+        historyId.current = crypto.randomUUID();
+        currentIndex.current = 0;
+        window.history.replaceState(indexedState(0, historyId.current), '');
+        currentUrl.current = window.location.href;
+        setNavigationNotice('');
+        sync();
+        return;
+      }
+      if (acceptedTraversal.current === index) {
+        acceptedTraversal.current = null;
+        restoring.current = null;
+      } else {
+        acceptedTraversal.current = null;
+        const pending = restoring.current;
+        if (pending) {
+          if (index !== pending.from) {
+            window.history.go(pending.from - index);
+            return;
+          }
+          restoring.current = null;
+          guardUnsavedNavigation(() => {
+            acceptedTraversal.current = pending.to;
+            window.history.go(pending.delta);
+          });
+          return;
+        }
+        if (hasUnsavedChanges()) {
+          const delta = index - currentIndex.current;
+          if (delta === 0) return;
+          restoring.current = { from: currentIndex.current, to: index, delta };
+          window.history.go(-delta);
+          return;
+        }
+      }
+      currentIndex.current = index;
+      currentUrl.current = window.location.href;
+      window.history.replaceState(indexedState(index, historyId.current), '');
+      setNavigationNotice('');
+      sync();
+    };
     sync();
-    window.addEventListener('popstate', sync);
-    return () => window.removeEventListener('popstate', sync);
+    window.addEventListener('popstate', onPop);
+    return () => window.removeEventListener('popstate', onPop);
   }, []);
 
   useEffect(() => {
@@ -146,7 +285,12 @@ export function CollaborationWorkbench() {
       setCreateOpen(false);
       setAccountOpen(false);
       setSessionError(cause.message);
-      window.history.replaceState(null, '', '/');
+      window.history.replaceState(
+        indexedState(currentIndex.current, historyId.current),
+        '',
+        '/',
+      );
+      currentUrl.current = window.location.href;
     } else if (cause instanceof ApiError && cause.status === 403) {
       setOverview(null);
       setWorkspaces(null);
@@ -186,7 +330,7 @@ export function CollaborationWorkbench() {
     const controller = new AbortController();
     setOverview(null);
     setScopeError('');
-    window.history.replaceState(null, '', locationFor(readView(), workspaceId));
+    replaceLocation(locationFor(readView(), workspaceId));
     api<Overview>(`/api/workspaces/${workspaceId}`, {
       signal: controller.signal,
     })
@@ -203,22 +347,32 @@ export function CollaborationWorkbench() {
   }, [user, workspaceId, detailRevision, handleError]);
 
   function navigate(next: View) {
-    setView(next);
-    setMenuOpen(false);
-    window.history.pushState(null, '', locationFor(next, workspaceId));
-    window.requestAnimationFrame(() =>
-      document.getElementById('main')?.focus(),
-    );
+    if (restoring.current) return;
+    if (next === view) return setMenuOpen(false);
+    guardUnsavedNavigation(() => {
+      setView(next);
+      setMenuOpen(false);
+      pushLocation(locationFor(next, workspaceId));
+      window.requestAnimationFrame(() =>
+        document.getElementById('main')?.focus(),
+      );
+    });
   }
   function selectWorkspace(next: string) {
-    setWorkspaceId(next);
-    setOverview(null);
-    setScopeError('');
-    setMembersOpen(false);
-    window.history.pushState(null, '', locationFor(view, next));
+    if (restoring.current || next === workspaceId) return;
+    guardUnsavedNavigation(() => {
+      setWorkspaceId(next);
+      setOverview(null);
+      setScopeError('');
+      setMembersOpen(false);
+      pushLocation(locationFor(view, next));
+    });
   }
-  async function logout() {
+  function logout() {
     if (loggingOut) return;
+    guardUnsavedNavigation(() => void performLogout());
+  }
+  async function performLogout() {
     setLoggingOut(true);
     setAccountError('');
     try {
@@ -229,7 +383,7 @@ export function CollaborationWorkbench() {
       setOverview(null);
       setAccountOpen(false);
       setScopeError('');
-      window.history.replaceState(null, '', '/');
+      replaceLocation('/');
     } catch (cause) {
       setAccountError(errorMessage(cause));
       handleError(cause);
@@ -382,6 +536,11 @@ export function CollaborationWorkbench() {
               <Button onClick={() => setMembersOpen(true)}>空间成员</Button>
             ) : null}
           </div>
+          {navigationNotice ? (
+            <div className="notice" role="alert">
+              <p>{navigationNotice}</p>
+            </div>
+          ) : null}
           {scopeError ? (
             <div className="notice notice-error" role="alert">
               <p>{scopeError}</p>
@@ -422,7 +581,8 @@ export function CollaborationWorkbench() {
           ) : !overview && !scopeError ? (
             <LoadingRows />
           ) : overview ? (
-            <WorkspaceContent
+            <ProductWorkspace
+              key={overview.workspace.id}
               view={view}
               overview={overview}
               navigate={navigate}
@@ -505,231 +665,5 @@ export function CollaborationWorkbench() {
         </div>
       </Modal>
     </div>
-  );
-}
-
-function WorkspaceContent({
-  view,
-  overview,
-  navigate,
-  onError,
-}: {
-  view: View;
-  overview: Overview;
-  navigate: (view: View) => void;
-  onError: (error: unknown) => void;
-}) {
-  const team = overview.team;
-  if (view === 'connect') return <ConnectionPanel onError={onError} />;
-  if (view === 'tasks')
-    return (
-      <div className="content-panel empty-content">
-        <h2>任务读取尚未开放</h2>
-        <p className="muted">
-          这里将显示你有权访问的项目任务。业务事实由连接系统提供，工作空间不会生成另一套任务数据。
-        </p>
-        <Button onClick={() => navigate('connect')}>查看当前连接</Button>
-      </div>
-    );
-  if (view === 'observe')
-    return (
-      <div className="content-panel empty-content">
-        <h2>还没有可用于评估的运行记录</h2>
-        <p className="muted">
-          T 组尚未开始执行。负载、可用容量与期限压力暂时无法评估。
-        </p>
-        <p className="muted">
-          运行与项目读取接入后，这里将显示有来源的工作量和执行记录。
-        </p>
-        <Button onClick={() => navigate('agents')}>查看 T 组</Button>
-      </div>
-    );
-  if (view === 'capabilities')
-    return (
-      <div className="content-panel empty-content">
-        <h2>Skills 与 MCP Server</h2>
-        <p className="muted">
-          技能安装与工具服务管理尚未开放。启用和绑定能力后，T
-          组才能在授权范围内使用。
-        </p>
-        <p className="muted">当前没有已安装的技能或已接入的工具服务。</p>
-      </div>
-    );
-  return (
-    <>
-      {view === 'focus' ? (
-        <section className="content-panel setup-panel">
-          <div className="section-heading">
-            <div>
-              <h2>先完成 T 组配置</h2>
-              <p className="muted">团队已建立，执行条件尚未就绪。</p>
-            </div>
-            <Button type="primary" onClick={() => navigate('agents')}>
-              查看 T 组
-            </Button>
-          </div>
-          <ul className="setup-list">
-            <li>
-              <span className="state-marker" />
-              <div>
-                <strong>模型与执行环境待配置</strong>
-                <p className="muted">
-                  三个成员尚未绑定模型，代码、测试与预览也需要隔离执行环境。
-                </p>
-              </div>
-            </li>
-            <li>
-              <span className="state-marker" />
-              <div>
-                <strong>项目上下文待授权</strong>
-                <p className="muted">
-                  创建团队不会扩大项目权限；派活前须明确项目范围与实际执行身份。
-                </p>
-              </div>
-            </li>
-          </ul>
-        </section>
-      ) : null}
-      <section className="content-panel team-panel">
-        <div className="section-heading">
-          <div>
-            <h2>{team.name}</h2>
-            <p className="muted">
-              挂靠人：{team.ownerDisplayName} · 模板版本 {team.templateVersion}
-            </p>
-          </div>
-          <span className="state-label">
-            <span className="state-marker" />
-            待配置
-          </span>
-        </div>
-        <ul className="agent-list">
-          {team.agents.map((agent) => (
-            <li key={agent.id}>
-              <span className="agent-avatar" aria-hidden="true">
-                <NavIcon view="agents" />
-              </span>
-              <div className="agent-description">
-                <h3>
-                  {agent.name}
-                  <span className="agent-kind">Agent</span>
-                </h3>
-                <p>{agent.description}</p>
-              </div>
-              <span className="state-label">
-                <span className="state-marker" />
-                待配置
-              </span>
-            </li>
-          ))}
-        </ul>
-        {view === 'agents' ? (
-          <div className="team-requirements">
-            <h3>开始执行前</h3>
-            <p className="muted">
-              模型、项目上下文及执行环境均待配置。配置与可恢复运行将在后续开发中接入；当前不会启动
-              Agent 执行。
-            </p>
-          </div>
-        ) : null}
-      </section>
-      {view === 'agents' ? (
-        <section className="content-panel empty-content">
-          <h2>运行与交付物</h2>
-          <p className="muted">
-            尚未开始运行。目标、阶段、待决策事项与交付证据将在实际执行后显示。
-          </p>
-        </section>
-      ) : null}
-    </>
-  );
-}
-
-function ConnectionPanel({ onError }: { onError: (error: unknown) => void }) {
-  const [data, setData] = useState<{
-    connection: {
-      id: string;
-      label: string;
-      kind: string;
-      configured: boolean;
-    };
-    authorization: { status: string; displayName: string };
-  } | null>(null);
-  const [error, setError] = useState('');
-  const [revision, setRevision] = useState(0);
-  useEffect(() => {
-    const controller = new AbortController();
-    setData(null);
-    setError('');
-    api<NonNullable<typeof data>>('/api/connection', {
-      signal: controller.signal,
-    })
-      .then((result) => {
-        if (!controller.signal.aborted) setData(result);
-      })
-      .catch((cause) => {
-        if (!controller.signal.aborted) {
-          setError(errorMessage(cause));
-          onError(cause);
-        }
-      });
-    return () => controller.abort();
-  }, [revision, onError]);
-  return (
-    <section className="content-panel">
-      <div className="section-heading">
-        <div>
-          <h2>当前身份连接</h2>
-          <p className="muted">账号授权与业务读取能力分别校验。</p>
-        </div>
-        <Button onClick={() => setRevision((value) => value + 1)}>
-          重新检查
-        </Button>
-      </div>
-      {error ? (
-        <p className="form-error" role="alert">
-          {error}
-        </p>
-      ) : !data ? (
-        <LoadingRows />
-      ) : (
-        <>
-          <dl className="connection-details">
-            <div>
-              <dt>连接名称</dt>
-              <dd>{data.connection.label}</dd>
-            </div>
-            <div>
-              <dt>系统类型</dt>
-              <dd>
-                {data.connection.kind === 'zentao'
-                  ? '禅道'
-                  : data.connection.kind}
-              </dd>
-            </div>
-            <div>
-              <dt>当前账号</dt>
-              <dd>{data.authorization.displayName}</dd>
-            </div>
-            <div>
-              <dt>账号授权</dt>
-              <dd className="state-label">
-                <span className="state-marker is-success" />
-                {data.authorization.status === 'authorized'
-                  ? '已验证'
-                  : '待验证'}
-              </dd>
-            </div>
-            <div>
-              <dt>项目与任务读取</dt>
-              <dd>尚未开放</dd>
-            </div>
-          </dl>
-          <p className="form-help">
-            账号验证通过不代表拥有全部项目权限。连接配置由部署管理员管理。
-          </p>
-        </>
-      )}
-    </section>
   );
 }

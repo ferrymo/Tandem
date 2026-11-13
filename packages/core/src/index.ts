@@ -4,6 +4,8 @@ export type ExternalRef = Readonly<{
   externalId: string;
 }>;
 export * from './collaboration';
+export * from './projects';
+export * from './capabilities';
 export type ResourceScope = Readonly<{ workspaceId: string; actorId: string }>;
 export class DomainError extends Error {
   constructor(
@@ -81,3 +83,4 @@ export interface McpClientProvider {
     serverId: string,
   ): Promise<readonly { name: string; schemaHash: string }[]>;
 }
+export * from './delivery';

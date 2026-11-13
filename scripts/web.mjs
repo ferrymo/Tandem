@@ -21,6 +21,10 @@ const child = spawn(
     stdio: 'inherit',
     env: {
       ...runtimeEnv('web'),
+      TANDEM_ARTIFACT_ROOT: resolve(
+        root,
+        process.env.TANDEM_ARTIFACT_ROOT ?? 'data/delivery',
+      ),
       HOSTNAME: process.env.TANDEM_HOST ?? '127.0.0.1',
     },
     windowsHide: true,

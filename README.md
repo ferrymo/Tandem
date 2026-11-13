@@ -2,7 +2,7 @@
 
 面向多团队、多项目的人与 AI Agent 协作平台。人确定目标、做关键决策，Agent 团队负责设计、开发、测试与交付。
 
-> 当前已建立工程基础，并实现账号认证、工作空间与成员权限、默认 T 组和六入口工作台。项目读取、派活执行、草案及 Skills/MCP 管理仍在开发。
+> 一期业务已接入：项目授权、真实任务与线程、版本草案审批、T 组运行、Skills/MCP 管理、隔离执行及本地演示部署。真实模型闭环仍待配置后的最终验收，不能据此视为已完成生产发布。
 
 ## 本地运行
 
@@ -26,11 +26,21 @@ corepack pnpm check             # 依赖边界、ESLint、类型、单元测试
 corepack pnpm test:integration  # 创建独立测试库，验证 PG/队列/Worker，结束后清理
 corepack pnpm build             # Web、Worker、MCP 生产构建
 corepack pnpm test:collaboration # 隔离数据库 + 测试协作服务的真实 HTTP 回归，先 build
+corepack pnpm test:projects      # 项目、草案版本、原身份和撤权集成
+corepack pnpm test:capabilities  # 技能、MCP、个人凭证及 Worker 范围集成
+corepack pnpm test:delivery      # 可恢复运行、审批关联和部署回执集成
+corepack pnpm test:execution     # 真实 Docker 测试、构建、健康检查与回滚
 ```
 
 浏览器测试、容器运行、备份恢复及排错见 [04 开发基础与本地运行](docs/04-开发基础与本地运行.md)。全局 pnpm 异常时继续使用 `corepack pnpm`，Windows 也可使用 `scripts\pnpm.cmd`。
 
 本地禅道与 Tandem 启动后，运行 `corepack pnpm test:zentao` 验证真实登录、身份连接、已有空间与退出撤销；凭据配置见 [06 本地禅道接入](docs/06-本地禅道接入.md)。该命令不创建空间。
+
+在“连接”绑定现有项目，显式授予成员及 T 组挂靠人项目权限；再到“能力”安装、启用并绑定技能，测试 MCP 后逐工具分类授权。写操作在“关注”或“任务”审阅当前草案版本，批准后由 Worker 使用原账号执行。
+
+T 组需在被忽略的 `.env` 中设置 `MODEL_BASE_URL`、`MODEL_NAME`、`MODEL_API_KEY`，并配置 `TANDEM_EXECUTION_IMAGE` 与共享产物目录 `TANDEM_ARTIFACT_ROOT`；示例见 `.env.example`。执行镜像须预先拉取，Web/Worker 重启后生效。当前执行目标是自包含 Web Demo 和本地演示发布，生产环境发布适配器尚未实现。
+
+`corepack pnpm test:product` 使用真实页面、禅道与 Worker 验证功能，会创建明确标记的验收任务、技能和本地 MCP 测试记录；报告存于被忽略的 `data/acceptance/`。真实模型未配置时明确列为待验收。操作步骤、API 和验证边界见 [07 一期实现与验收](docs/07-一期实现与验收.md)。
 
 ## 默认团队：T 组
 
@@ -82,9 +92,10 @@ PostgreSQL + pgvector：自有资产、持久队列、知识索引
 | [03 设计规范](docs/03-设计规范.md)             | 页面交互、状态语义、视觉 token、响应式与验收 |
 | [05 协作基础与认证](docs/05-协作基础与认证.md) | 登录配置、空间成员、当前 API 与验证边界      |
 | [06 本地禅道接入](docs/06-本地禅道接入.md)     | Docker 禅道、真实身份接入与本地验收          |
+| [07 一期实现与验收](docs/07-一期实现与验收.md) | 功能闭环、运行配置、验收证据和当前边界       |
 | [AGENTS](AGENTS.md)                            | 仓库开发规则与交付要求                       |
 
-开发按上述基线重新实现；已删除的代码只保留在 Git 历史中，不作为兼容约束。上述一期目标是产品范围，不代表当前已实现。
+开发按上述基线重新实现；已删除的代码只保留在 Git 历史中，不作为兼容约束。实现范围与真实验收结论分别记录，不以构建通过代替交付完成。
 
 ## 许可证
 

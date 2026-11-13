@@ -2,7 +2,9 @@ import pg from 'pg';
 import { DomainError } from '@tandem/core';
 import type { Job, JobQueue, ResourceScope } from '@tandem/core';
 export * from './collaboration';
-export const SCHEMA_VERSION = '0002_collaboration.sql';
+export * from './capabilities';
+export * from './projects';
+export const SCHEMA_VERSION = '0008_deployment_write_scope.sql';
 export function createPool(connectionString: string) {
   return new pg.Pool({
     connectionString,
@@ -146,3 +148,4 @@ export async function heartbeat(
     [workerId],
   );
 }
+export * from './delivery';

@@ -2,6 +2,7 @@ import { randomUUID } from 'node:crypto';
 import { writeFileSync } from 'node:fs';
 import { setTimeout as sleep } from 'node:timers/promises';
 import { executeJob } from '@tandem/agent-runtime';
+import { productHandlers } from './product-handlers';
 import { createLogger, readWorkerEnv, safeErrorCode } from '@tandem/platform';
 import {
   createPool,
@@ -75,6 +76,7 @@ try {
           job,
           workerId,
           new Map([
+            ...productHandlers(pool, workerId, controller.signal),
             [
               'system.diagnostic',
               async () => {

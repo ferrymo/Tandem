@@ -11,7 +11,7 @@ concurrency:
 jobs:
   verify:
     runs-on: ubuntu-latest
-    timeout-minutes: 20
+    timeout-minutes: 25
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4
@@ -25,6 +25,13 @@ jobs:
       - run: corepack pnpm db:up
       - run: corepack pnpm db:bootstrap && corepack pnpm db:migrate && corepack pnpm db:check
       - run: corepack pnpm test:integration
+      - run: corepack pnpm test:projects
+      - run: corepack pnpm test:capabilities
+      - run: corepack pnpm test:delivery
+      - name: Verify isolated execution and local delivery
+        run: |
+          docker pull node@sha256:0e0ff40c39bc087845bfb27465a0df4ea419520094bc35842ff83dd8cbe6f9b6
+          corepack pnpm test:execution
       - run: corepack pnpm build
       - run: corepack pnpm test:collaboration
       - run: corepack pnpm exec playwright install --with-deps chromium

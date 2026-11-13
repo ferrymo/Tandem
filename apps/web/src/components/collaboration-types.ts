@@ -56,7 +56,7 @@ export async function api<T>(path: string, init: RequestInit = {}): Promise<T> {
       response.status === 401
         ? '登录已失效，请重新登录。'
         : response.status === 403
-          ? '当前内容不可用或无访问权限。'
+          ? data?.error?.message || '当前内容不可用或无访问权限。'
           : data?.error?.message || '服务暂不可用，请稍后重试。';
     throw new ApiError(response.status, message);
   }

@@ -9,6 +9,9 @@ const config: NextConfig = {
     '@tandem/platform',
     '@tandem/storage-postgres',
     '@tandem/zentao',
+    '@tandem/capabilities',
+    '@tandem/execution',
+    '@tandem/mcp-client',
   ],
   poweredByHeader: false,
   async headers() {

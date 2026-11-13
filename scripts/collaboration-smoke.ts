@@ -314,9 +314,9 @@ async function browserRegression() {
     );
     assert.equal(overviewResponse.status(), 200, '浏览器会话可读取真实空间');
     const before = (await overviewResponse.json()) as BrowserOverview;
-    await expect(page.locator('.agent-description p')).toHaveText(
-      before.team.agents.map((agent) => agent.description),
-    );
+    await expect(
+      page.locator('.agent-description > p:first-of-type'),
+    ).toHaveText(before.team.agents.map((agent) => agent.description));
     const spacesBefore = await context.request.get(base + '/api/workspaces');
     const spacesCount = (
       (await spacesBefore.json()) as { workspaces: unknown[] }

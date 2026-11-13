@@ -20,12 +20,34 @@ const transport = new StdioClientTransport({
   command: process.execPath,
   args: ['apps/mcp/dist/index.js'],
   stderr: 'inherit',
+  env: { TANDEM_MCP_ACCOUNT: '', TANDEM_MCP_PASSWORD: '' },
 });
 try {
   await client.connect(transport);
-  assert.deepEqual((await client.listTools()).tools, []);
+  const { tools } = await client.listTools();
+  assert.deepEqual(
+    tools.map((tool) => tool.name).sort(),
+    [
+      'tandem_workspaces',
+      'tandem_projects',
+      'tandem_executions',
+      'tandem_tasks',
+      'tandem_runs',
+      'tandem_drafts',
+      'tandem_propose_task_change',
+    ].sort(),
+  );
+  assert.equal(
+    tools.filter((tool) => tool.annotations?.readOnlyHint === true).length,
+    6,
+  );
+  const unauthenticated = await client.callTool({
+    name: 'tandem_workspaces',
+    arguments: {},
+  });
+  assert.equal(unauthenticated.isError, true, '未配置本人账号不得读取数据');
   console.log(
-    '冒烟通过：Web/API 单端口、数据库就绪、MCP stdio 握手及空工具目录。',
+    '冒烟通过：Web/API 单端口、数据库就绪、MCP stdio 七工具契约及未认证拒绝。',
   );
 } finally {
   await client.close();

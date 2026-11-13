@@ -8,6 +8,7 @@
     "typecheck": "tsc --noEmit"
   },
   "dependencies": {
-    "@tandem/core": "workspace:*"
+    "@tandem/core": "workspace:*",
+    "@tandem/capabilities": "workspace:*"
   }
 }

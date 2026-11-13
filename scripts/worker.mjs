@@ -8,7 +8,18 @@ const child = spawn(
   dev
     ? ['--import', 'tsx', 'apps/worker/src/index.ts']
     : ['apps/worker/dist/index.js'],
-  { cwd: root, env: runtimeEnv('worker'), stdio: 'inherit', windowsHide: true },
+  {
+    cwd: root,
+    env: {
+      ...runtimeEnv('worker'),
+      TANDEM_ARTIFACT_ROOT: resolve(
+        root,
+        process.env.TANDEM_ARTIFACT_ROOT ?? 'data/delivery',
+      ),
+    },
+    stdio: 'inherit',
+    windowsHide: true,
+  },
 );
 child.on('error', () => {
   process.exitCode = 1;

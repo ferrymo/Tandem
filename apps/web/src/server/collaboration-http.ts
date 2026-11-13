@@ -35,6 +35,7 @@ export function assertSameOrigin(request: Request) {
 export async function body<T>(
   request: Request,
   schema: z.ZodType<T>,
+  maxBytes = 8192,
 ): Promise<T> {
   if (
     request.headers.get('content-type')?.split(';')[0]?.trim() !==
@@ -50,7 +51,7 @@ export async function body<T>(
       const { done, value } = await reader.read();
       if (done) break;
       size += value.byteLength;
-      if (size > 8192) {
+      if (size > maxBytes) {
         await reader.cancel();
         throw new DomainError('INVALID_INPUT', '请求内容过长');
       }

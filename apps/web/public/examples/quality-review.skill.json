@@ -1,0 +1,15 @@
+{
+  "files": {
+    "SKILL.md": "---\nname: quality-review\ndescription: 交付前检查完整演示路径和验证证据\n---\n\n检查目标与验收条件。逐步走完演示路径，覆盖空态、错误、窄屏与键盘操作。记录真实测试结果、模拟范围、已知限制和复现步骤。发现问题时先修复再复验，不能将模型自述当作测试证据。\n",
+    "references/checklist.md": "- 完整主路径\n- 错误与恢复\n- 无凭证泄露\n- 真实测试证据\n- 部署与回滚记录\n"
+  },
+  "description": "交付前检查完整演示路径、错误状态和可复现验证证据",
+  "name": "quality-review",
+  "version": "1.0.0",
+  "source": {
+    "label": "Tandem 技能包模板",
+    "kind": "upload"
+  },
+  "dependencies": [],
+  "permissions": []
+}

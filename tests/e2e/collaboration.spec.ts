@@ -1,5 +1,34 @@
 import { expect, test, type Page } from '@playwright/test';
 
+test.beforeEach(async ({ page }) => {
+  await page.route('**/api/workspaces/*/product?*', (route) => {
+    const resource = new URL(route.request().url()).searchParams.get(
+      'resource',
+    );
+    const replies: Record<string, unknown> = {
+      projects: { projects: [] },
+      'available-projects': { projects: [] },
+      'project-grants': { grants: [] },
+      connection: {
+        connection: { label: '测试连接', kind: 'test' },
+        authorization: { displayName: '张三' },
+      },
+      runs: { runs: [] },
+      drafts: { drafts: [] },
+      profiles: {
+        profiles: {
+          designer: { model: '', instructions: '' },
+          architect: { model: '', instructions: '' },
+          engineer: { model: '', instructions: '' },
+        },
+        model: { configured: false, name: '' },
+        execution: { configured: false },
+      },
+    };
+    return route.fulfill({ json: replies[resource ?? ''] ?? {} });
+  });
+});
+
 const user = {
   id: '00000000-0000-4000-8000-000000000001',
   displayName: '张三',
@@ -134,8 +163,12 @@ test('登录、创建空间与 T 组初始状态', async ({ page }) => {
   await expect(page.getByRole('heading', { name: '研发工程师' })).toBeVisible();
   expect(requestId).toMatch(/^[0-9a-f-]{36}$/);
   await expect(page).toHaveURL(new RegExp('workspace=' + a.id));
-  await expect(page.getByText('模型与执行环境待配置')).toBeVisible();
-  await expect(page.getByRole('button', { name: '交给 T 组' })).toHaveCount(0);
+  await expect(
+    page.getByText('模型或执行环境尚未就绪。', { exact: false }),
+  ).toBeVisible();
+  await expect(
+    page.getByRole('button', { name: '交给 T 组', exact: true }),
+  ).toBeDisabled();
   expect(
     await page.evaluate(
       () => document.documentElement.scrollWidth <= innerWidth,
@@ -155,7 +188,7 @@ test('工作台导航、成员权限与键盘焦点', async ({ page }) => {
   await page.goto('/');
   await navigate(page, 'Agents');
   await expect(
-    page.getByRole('heading', { name: '运行与交付物' }),
+    page.getByRole('heading', { name: '运行与交付', exact: true }),
   ).toBeVisible();
   await page.getByRole('button', { name: '空间成员' }).click();
   const dialog = page.getByRole('dialog', { name: '空间成员 · 空间 A' });
@@ -196,6 +229,57 @@ test('切换空间后旧慢请求不能覆盖新范围', async ({ page }) => {
   release?.();
   await expect(page.getByRole('heading', { name: '产品设计师' })).toBeVisible();
   await expect(page.getByText('空间 A · 创建人')).toHaveCount(0);
+});
+
+test('同空间前后退保留工作台，未保存目标须确认后离开', async ({ page }) => {
+  await authenticated(page);
+  await page.goto('/');
+  await navigate(page, 'Agents');
+  await expect(
+    page.getByRole('textbox', { name: '交付目标', exact: true }),
+  ).toBeVisible();
+  await navigate(page, '连接');
+  await page.evaluate(() => window.history.back());
+  await expect(
+    page.getByRole('heading', { level: 1, name: 'Agents', exact: true }),
+  ).toBeVisible();
+  const goal = page.getByRole('textbox', { name: '交付目标', exact: true });
+  await expect(goal).toBeVisible();
+  await goal.fill('尚未提交的目标');
+  await page
+    .getByRole('textbox', { name: '验收条件', exact: true })
+    .fill('保留两个长文本');
+  const currentUrl = page.url();
+  await page.evaluate(() => window.history.back());
+  const confirmation = page.getByRole('dialog', {
+    name: '放弃未保存的内容？',
+    exact: true,
+  });
+  await expect(confirmation).toBeVisible();
+  await expect(
+    confirmation.getByRole('button', { name: '继续编辑', exact: true }),
+  ).toBeFocused();
+  await confirmation
+    .getByRole('button', { name: '继续编辑', exact: true })
+    .click();
+  await expect(page).toHaveURL(currentUrl);
+  await expect(goal).toHaveValue('尚未提交的目标');
+  await expect(
+    page.getByRole('textbox', { name: '验收条件', exact: true }),
+  ).toHaveValue('保留两个长文本');
+  await page.evaluate(() => window.history.back());
+  await confirmation
+    .getByRole('button', { name: '放弃更改', exact: true })
+    .click();
+  await expect(
+    page.getByRole('heading', { level: 1, name: '关注', exact: true }),
+  ).toBeVisible();
+  await expect(goal).toHaveValue('');
+  await page.evaluate(() => window.history.forward());
+  await expect(
+    page.getByRole('heading', { level: 1, name: 'Agents', exact: true }),
+  ).toBeVisible();
+  await expect(goal).toBeVisible();
 });
 
 test('重新可见时发现会话撤销会清除所有空间数据', async ({ page }) => {

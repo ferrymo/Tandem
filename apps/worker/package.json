@@ -8,12 +8,17 @@
     "typecheck": "tsc --noEmit"
   },
   "dependencies": {
-    "@tandem/core": "workspace:*",
     "@tandem/agent-runtime": "workspace:*",
+    "@tandem/application": "workspace:*",
+    "@tandem/core": "workspace:*",
+    "@tandem/execution": "workspace:*",
+    "@tandem/mcp-client": "workspace:*",
+    "@tandem/model": "workspace:*",
     "@tandem/platform": "workspace:*",
     "@tandem/storage-postgres": "workspace:*",
+    "@tandem/zentao": "workspace:*",
+    "pg": "8.23.1",
     "pino": "10.4.0",
-    "zod": "4.6.7",
-    "pg": "8.23.1"
+    "zod": "4.6.7"
   }
 }

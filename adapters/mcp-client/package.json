@@ -8,6 +8,7 @@
     "typecheck": "tsc --noEmit"
   },
   "dependencies": {
-    "@tandem/core": "workspace:*"
+    "@tandem/core": "workspace:*",
+    "@modelcontextprotocol/sdk": "1.32.2"
   }
 }
