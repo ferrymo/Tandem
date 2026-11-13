@@ -25,6 +25,7 @@
     "test:projects": "tsx --env-file=.env scripts/projects-integration.ts",
     "test:capabilities": "tsx --env-file=.env scripts/capabilities-integration.ts",
     "test:delivery": "tsx --env-file=.env scripts/delivery-integration.ts",
+    "test:delivery:real": "tsx --env-file=.env --env-file=.env.zentao.local scripts/real-delivery-walkthrough.ts",
     "test:execution": "tsx scripts/delivery-execution-smoke.ts",
     "test:product": "tsx --env-file=.env --env-file=.env.zentao.local scripts/product-walkthrough.ts --no-screenshots",
     "test:mcp": "tsx --env-file=.env --env-file=.env.zentao.local scripts/mcp-product-smoke.ts",

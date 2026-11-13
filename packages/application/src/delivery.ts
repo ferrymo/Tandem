@@ -210,7 +210,10 @@ export class DeliveryService {
         !delivery ||
         delivery.run.id !== action.runId ||
         delivery.run.actorId !== context.draft.actorId ||
-        delivery.run.sessionId !== context.draft.sessionId
+        delivery.session.id !== context.draft.sessionId ||
+        delivery.session.identity.id !== delivery.run.actorId ||
+        context.session.id !== context.draft.sessionId ||
+        context.session.identity.id !== context.draft.actorId
       )
         throw new DomainError('FORBIDDEN', '部署草案原身份或版本不可用');
       if (!(await this.repository.deploymentWriteAllowed(fence)))

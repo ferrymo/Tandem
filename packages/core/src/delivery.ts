@@ -39,6 +39,13 @@ export type DeliveryEvidence = Readonly<{
     exitCode: number;
     output: string;
   }[];
+  execution?: Readonly<{
+    kind: 'docker';
+    image: string;
+    network: 'none';
+    user: '1000:1000';
+    browserValidation: 'not_performed';
+  }>;
   passed: boolean;
   verifiedAt: string;
 }>;
@@ -201,7 +208,7 @@ export interface DeliveryModel {
     prompt: string;
     maxTokens: number;
     signal: AbortSignal;
-  }): Promise<{ text: string; totalTokens: number }>;
+  }): Promise<{ text: string; totalTokens: number; truncated?: boolean }>;
 }
 export type DeploymentReceipt = Readonly<{
   id: string;

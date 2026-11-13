@@ -2,7 +2,7 @@
 
 面向多团队、多项目的人与 AI Agent 协作平台。人确定目标、做关键决策，Agent 团队负责设计、开发、测试与交付。
 
-> 一期业务已接入：项目授权、真实任务与线程、版本草案审批、T 组运行、Skills/MCP 管理、隔离执行及本地演示部署。真实模型闭环仍待配置后的最终验收，不能据此视为已完成生产发布。
+> 一期业务已接入。本机已验证真实 T 组三角色、Skills 资源读取、两版 Demo 交互、获批本地发布与回滚，最终 8 项检查通过。生产环境发布适配器尚未实现，证据与边界见 [07 一期实现与验收](docs/07-一期实现与验收.md)。
 
 ## 本地运行
 
@@ -30,6 +30,7 @@ corepack pnpm test:projects      # 项目、草案版本、原身份和撤权集
 corepack pnpm test:capabilities  # 技能、MCP、个人凭证及 Worker 范围集成
 corepack pnpm test:delivery      # 可恢复运行、审批关联和部署回执集成
 corepack pnpm test:execution     # 真实 Docker 测试、构建、健康检查与回滚
+corepack pnpm test:delivery:real # 本机真实模型交付验收，有模型消耗及本地部署写入
 ```
 
 浏览器测试、容器运行、备份恢复及排错见 [04 开发基础与本地运行](docs/04-开发基础与本地运行.md)。全局 pnpm 异常时继续使用 `corepack pnpm`，Windows 也可使用 `scripts\pnpm.cmd`。
@@ -40,7 +41,7 @@ corepack pnpm test:execution     # 真实 Docker 测试、构建、健康检查�
 
 T 组需在被忽略的 `.env` 中设置 `MODEL_BASE_URL`、`MODEL_NAME`、`MODEL_API_KEY`，并配置 `TANDEM_EXECUTION_IMAGE` 与共享产物目录 `TANDEM_ARTIFACT_ROOT`；示例见 `.env.example`。执行镜像须预先拉取，Web/Worker 重启后生效。当前执行目标是自包含 Web Demo 和本地演示发布，生产环境发布适配器尚未实现。
 
-`corepack pnpm test:product` 使用真实页面、禅道与 Worker 验证功能，会创建明确标记的验收任务、技能和本地 MCP 测试记录；报告存于被忽略的 `data/acceptance/`。真实模型未配置时明确列为待验收。操作步骤、API 和验证边界见 [07 一期实现与验收](docs/07-一期实现与验收.md)。
+`corepack pnpm test:product` 使用真实页面、禅道与 Worker 验证协作功能；`test:delivery:real` 使用已配置模型验证 Demo、审批部署和回滚。两者会写入专用本机验收对象，报告存于被忽略的 `data/acceptance/`；后者按报告恢复，避免重复派活。运行前确认本机 `:8088` 测试系统、账号及模型配置，勿指向生产站点。步骤、API 与证据见 [07 一期实现与验收](docs/07-一期实现与验收.md)。
 
 ## 默认团队：T 组
 

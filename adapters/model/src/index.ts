@@ -97,7 +97,7 @@ export class CompatibleDeliveryModel implements DeliveryModel {
       await reader.cancel().catch(() => undefined);
     }
     let data: {
-      choices?: { message?: { content?: unknown } }[];
+      choices?: { message?: { content?: unknown }; finish_reason?: unknown }[];
       usage?: { total_tokens?: unknown };
     };
     try {
@@ -106,13 +106,26 @@ export class CompatibleDeliveryModel implements DeliveryModel {
       throw new DomainError('UNAVAILABLE', '模型返回无效 JSON');
     }
     const answer = data.choices?.[0]?.message?.content;
-    if (typeof answer !== 'string' || !answer.trim())
-      throw new DomainError('UNAVAILABLE', '模型未返回可用内容');
+    const truncated = data.choices?.[0]?.finish_reason === 'length';
     const usage = data.usage?.total_tokens;
     const totalTokens =
       typeof usage === 'number' && Number.isInteger(usage) && usage > 0
         ? usage
-        : Buffer.byteLength(input.system + input.prompt + answer, 'utf8');
+        : truncated
+          ? Buffer.byteLength(input.system + input.prompt, 'utf8') +
+            input.maxTokens
+          : Buffer.byteLength(input.system + input.prompt + answer, 'utf8');
+    // Even an empty length-limited response may have consumed reasoning tokens.
+    // Settle reported usage before the runtime rejects its incomplete content;
+    // without valid usage retain the same conservative reservation as runtime.
+    if (truncated)
+      return {
+        text: typeof answer === 'string' ? answer : '',
+        totalTokens,
+        truncated: true,
+      };
+    if (typeof answer !== 'string' || !answer.trim())
+      throw new DomainError('UNAVAILABLE', '模型未返回可用内容');
     return { text: answer, totalTokens };
   }
 }

@@ -4,7 +4,7 @@ import type { Job, JobQueue, ResourceScope } from '@tandem/core';
 export * from './collaboration';
 export * from './capabilities';
 export * from './projects';
-export const SCHEMA_VERSION = '0008_deployment_write_scope.sql';
+export const SCHEMA_VERSION = '0009_deployment_draft_session.sql';
 export function createPool(connectionString: string) {
   return new pg.Pool({
     connectionString,

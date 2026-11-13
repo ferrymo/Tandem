@@ -39,7 +39,7 @@ const phases: Record<DeliveryRun['phase'], string> = {
   architecture: '技术与部署设计',
   implementation: '开发实现',
   test: '测试与构建',
-  design_review: '体验验收',
+  design_review: '设计复核',
   technical_review: '技术复核',
   delivery: '交付与部署',
 };
@@ -48,6 +48,23 @@ const roleNames = {
   architect: '技术架构师',
   engineer: '研发工程师',
 };
+function documentName(kind: string) {
+  if (kind.startsWith('skill_resources.')) return '技能资源读取记录';
+  if (kind.startsWith('skills.')) return '技能版本快照';
+  if (kind.startsWith('tools.')) return '工具授权快照';
+  const names: Record<string, string> = {
+    design: '产品设计',
+    architecture: '技术与部署设计',
+    implementation: '工程实现',
+    design_review: '设计复核',
+    technical_review: '技术复核',
+    profiles: '团队配置快照',
+    issues: '修订事项',
+    pending_tool: '工具审批检查点',
+    deployment_proposal: '部署提案',
+  };
+  return names[kind] ?? '运行记录';
+}
 type ProfilesResult = {
   profiles: DeliveryProfiles;
   model: { configured: boolean; name: string };
@@ -815,8 +832,8 @@ function RunDetail({
                           key={`${doc.kind}-${doc.version}-${index}`}
                         >
                           <summary>
-                            {roleNames[doc.role]} · {doc.kind} · 版本{' '}
-                            {doc.version}
+                            {roleNames[doc.role]} · {documentName(doc.kind)} ·
+                            版本 {doc.version}
                           </summary>
                           <p className="muted">
                             <Timestamp value={doc.createdAt} />
@@ -840,6 +857,9 @@ function RunDetail({
                       </h3>
                       <p className="muted">
                         验证时间 <Timestamp value={artifact.verifiedAt} />
+                      </p>
+                      <p className="muted">
+                        这里记录构建、行为测试与入口检查；交互效果请打开预览验收。
                       </p>
                       <div className="row-actions">
                         <Button

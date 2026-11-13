@@ -35,6 +35,7 @@ const mime: Record<string, string> = {
 };
 function safePath(path: string) {
   if (
+    typeof path !== 'string' ||
     !path ||
     path.length > 200 ||
     path.includes('\\') ||
@@ -65,6 +66,7 @@ export function validateDeliveryPackage(value: unknown): DeliveryPackage {
     p.testCommands.length > 10 ||
     !Array.isArray(p.buildCommands) ||
     p.buildCommands.length > 10 ||
+    typeof p.previewPath !== 'string' ||
     typeof p.summary !== 'string' ||
     p.summary.length > 4000 ||
     !Array.isArray(p.limitations) ||
@@ -74,6 +76,8 @@ export function validateDeliveryPackage(value: unknown): DeliveryPackage {
   const seen = new Set<string>();
   let size = 0;
   for (const file of p.files) {
+    if (!file || typeof file !== 'object')
+      throw new DomainError('INVALID_INPUT', '工程文件必须包含路径与文本内容');
     safePath(file.path);
     if (
       file.path.startsWith('.tandem-') ||
@@ -85,10 +89,12 @@ export function validateDeliveryPackage(value: unknown): DeliveryPackage {
     seen.add(file.path);
     size += Buffer.byteLength(file.content);
   }
+  const previewPath = safePath(p.previewPath);
   if (
     size > 2000000 ||
-    !seen.has(safePath(p.previewPath)) ||
-    !p.previewPath.endsWith('.html')
+    (!p.buildCommands.length && !seen.has(previewPath)) ||
+    previewPath.startsWith('.tandem-') ||
+    !previewPath.endsWith('.html')
   )
     throw new DomainError(
       'INVALID_INPUT',
@@ -118,6 +124,334 @@ export function validateDeliveryPackage(value: unknown): DeliveryPackage {
       '必须提供真实 node --test 测试及测试文件',
     );
   return p;
+}
+
+type PreviewToken = { kind: 'word' | 'string' | 'punctuation'; value: string };
+
+// This lexer only recognizes common, active API usage. It is deliberately not a
+// JavaScript evaluator or a security boundary; the preview CSP remains required.
+function previewScriptTokens(source: string): PreviewToken[] {
+  const tokens: PreviewToken[] = [];
+  let index = 0;
+  const quoted = (quote: string) => {
+    let value = '';
+    index++;
+    while (index < source.length) {
+      const char = source[index++]!;
+      if (char === quote) break;
+      if (char === '\\') value += source[index++] ?? '';
+      else value += char;
+    }
+    return value;
+  };
+  const code = (templateExpression = false) => {
+    let braces = 0;
+    while (index < source.length) {
+      const char = source[index]!;
+      if (/\s/.test(char)) {
+        index++;
+      } else if (source.startsWith('//', index)) {
+        const end = source.indexOf('\n', index + 2);
+        index = end < 0 ? source.length : end + 1;
+      } else if (source.startsWith('/*', index)) {
+        const end = source.indexOf('*/', index + 2);
+        index = end < 0 ? source.length : end + 2;
+      } else if (char === '"' || char === "'") {
+        tokens.push({ kind: 'string', value: quoted(char) });
+      } else if (char === '`') {
+        index++;
+        while (index < source.length) {
+          if (source[index] === '\\') index += 2;
+          else if (source[index] === '`') {
+            index++;
+            break;
+          } else if (source.startsWith('${', index)) {
+            index += 2;
+            code(true);
+          } else index++;
+        }
+      } else if (
+        char === '/' &&
+        (!tokens.length ||
+          /^(?:[=(:,!&|?;{>[]|return|throw|case)$/.test(tokens.at(-1)!.value))
+      ) {
+        // A regexp literal is data, including words such as /localStorage/.
+        index++;
+        let characterClass = false;
+        while (index < source.length) {
+          const next = source[index++]!;
+          if (next === '\\') index++;
+          else if (next === '[') characterClass = true;
+          else if (next === ']') characterClass = false;
+          else if (next === '/' && !characterClass) break;
+        }
+        while (/[a-z]/i.test(source[index] ?? '')) index++;
+        tokens.push({ kind: 'string', value: '' });
+      } else if (/[a-z_$]/i.test(char)) {
+        const start = index++;
+        while (/[\w$]/.test(source[index] ?? '')) index++;
+        tokens.push({ kind: 'word', value: source.slice(start, index) });
+      } else {
+        index++;
+        if (templateExpression && char === '}' && !braces) return;
+        if (char === '{') braces++;
+        if (char === '}') braces--;
+        tokens.push({ kind: 'punctuation', value: char });
+      }
+    }
+  };
+  code();
+  return tokens;
+}
+
+function previewAttribute(value: string) {
+  const entities: Record<string, string> = {
+    amp: '&',
+    quot: '"',
+    apos: "'",
+    lt: '<',
+    gt: '>',
+    colon: ':',
+    Tab: '\t',
+    NewLine: '\n',
+  };
+  return value.replace(
+    /&(#x[\da-f]+|#\d+|[a-z]+);?/gi,
+    (full, entity: string) => {
+      if (!entity.startsWith('#')) return entities[entity] ?? full;
+      const number =
+        entity[1]?.toLowerCase() === 'x'
+          ? Number.parseInt(entity.slice(2), 16)
+          : Number.parseInt(entity.slice(1), 10);
+      return number > 0 && number <= 0x10ffff
+        ? String.fromCodePoint(number)
+        : full;
+    },
+  );
+}
+
+/**
+ * Compatibility gate for the current single-HTML, inline classic JS/CSS,
+ * in-memory preview contract. This is not full JS/DOM or browser validation and
+ * does not replace CSP, authorization, Node behavior tests or browser acceptance.
+ */
+export function deliveryPreviewIssues(html: string): string[] {
+  const issues = new Set<string>();
+  const embedded = (url: string) => /^(?:data:|#)/i.test(url.trim());
+  const script = (source: string) => {
+    const tokens = previewScriptTokens(source);
+    const unsupported = new Set([
+      'fetch',
+      'XMLHttpRequest',
+      'WebSocket',
+      'EventSource',
+      'sendBeacon',
+      'localStorage',
+      'sessionStorage',
+      'Storage',
+      'indexedDB',
+      'IDBFactory',
+      'caches',
+      'Worker',
+      'SharedWorker',
+      'serviceWorker',
+    ]);
+    for (const [index, token] of tokens.entries()) {
+      const receiver =
+        tokens[index - 2]?.value === '?'
+          ? tokens[index - 3]
+          : tokens[index - 2];
+      const propertyString =
+        token.kind === 'string' &&
+        tokens[index - 1]?.value === '[' &&
+        tokens[index + 1]?.value === ']' &&
+        (receiver?.kind === 'word' ||
+          [')', ']'].includes(receiver?.value ?? ''));
+      if (token.kind !== 'word' && !propertyString) continue;
+      // Object data keys are not API access; ordinary strings/comments/templates
+      // likewise do not make a textual mention into executable API usage.
+      if (tokens[index + 1]?.value === ':') continue;
+      const member = propertyString || tokens[index - 1]?.value === '.';
+      const browserAccess =
+        !member ||
+        ['window', 'globalThis', 'self', 'navigator'].includes(
+          receiver?.value ?? '',
+        );
+      if (unsupported.has(token.value) && browserAccess)
+        issues.add(
+          `活跃脚本使用不支持的 ${token.value}；预览仅支持纯内存状态和离线交互，请移除该API`,
+        );
+      if (
+        ['import', 'export'].includes(token.value) &&
+        token.kind === 'word' &&
+        !member
+      )
+        issues.add(
+          '活跃脚本含 import/export；请在 Node 构建时把共享源内联为经典脚本，最终HTML不能使用模块',
+        );
+      if (token.value === 'cookie' && tokens[index - 2]?.value === 'document')
+        issues.add(
+          '活跃脚本访问 document.cookie；隔离预览不提供Cookie，请使用纯内存状态',
+        );
+      if (token.value === 'storage' && tokens[index - 2]?.value === 'navigator')
+        issues.add(
+          '活跃脚本访问 navigator.storage；隔离预览不提供持久化存储，请使用纯内存状态',
+        );
+    }
+  };
+  const css = (source: string) => {
+    // Scan outside comments and standalone strings (e.g. content:"url(x)").
+    const pattern =
+      /\/\*[\s\S]*?\*\/|"(?:\\.|[^"\\])*"|'(?:\\.|[^'\\])*'|@import\b|@font-face\b|url\(\s*(?:"((?:\\.|[^"\\])*)"|'((?:\\.|[^'\\])*)'|([^)]*))\s*\)/gi;
+    for (const match of source.matchAll(pattern)) {
+      if (/^@import/i.test(match[0]))
+        issues.add('CSS使用 @import；请把样式内联到最终HTML');
+      else if (/^@font-face/i.test(match[0]))
+        issues.add(
+          'CSS使用 @font-face；当前预览仅支持系统字体，请移除字体资源',
+        );
+      else if (
+        /^url\(/i.test(match[0]) &&
+        !embedded(match[1] ?? match[2] ?? match[3] ?? '')
+      )
+        issues.add('CSS引用非data资源；请内联为data URL或使用文档内SVG片段');
+    }
+  };
+  // Raw script/style/text regions are consumed as a unit so examples in text,
+  // JSON data blocks and HTML comments are not treated as active resource tags.
+  const tags =
+    /<!--[\s\S]*?-->|<(\/?)([a-z][a-z\d:-]*)\b((?:[^>"']|"[^"]*"|'[^']*')*)>/gi;
+  let templateDepth = 0;
+  for (let match = tags.exec(html); match; match = tags.exec(html)) {
+    if (!match[2]) continue;
+    const tag = match[2].toLowerCase();
+    const closing = match[1] === '/';
+    if (tag === 'template') {
+      templateDepth = Math.max(0, templateDepth + (closing ? -1 : 1));
+      continue;
+    }
+    if (closing) continue;
+    const attributes = new Map<string, string>();
+    const attr =
+      /([^\s"'<>/=]+)(?:\s*=\s*(?:"([^"]*)"|'([^']*)'|([^\s"'=<>`]+)))?/g;
+    for (const item of match[3]!.matchAll(attr)) {
+      const name = item[1]!.toLowerCase();
+      if (!attributes.has(name))
+        attributes.set(
+          name,
+          previewAttribute(item[2] ?? item[3] ?? item[4] ?? ''),
+        );
+    }
+    let body = '';
+    if (
+      ['script', 'style', 'textarea', 'title', 'xmp', 'noscript'].includes(tag)
+    ) {
+      const end = new RegExp(`</${tag}\\s*>`, 'gi');
+      end.lastIndex = tags.lastIndex;
+      const close = end.exec(html);
+      body = html.slice(tags.lastIndex, close?.index ?? html.length);
+      tags.lastIndex = close ? end.lastIndex : html.length;
+      if (!close && !templateDepth && ['script', 'style'].includes(tag))
+        issues.add(`最终HTML的 ${tag} 标签未闭合；请修复截断的入口文件`);
+    }
+    if (templateDepth) continue;
+    if (tag === 'script') {
+      const type = attributes.get('type')?.trim().toLowerCase() ?? '';
+      if (['module', 'importmap', 'speculationrules'].includes(type))
+        issues.add('最终HTML使用模块脚本/importmap；请构建为内联经典脚本');
+      if (
+        [
+          '',
+          'text/javascript',
+          'application/javascript',
+          'text/ecmascript',
+          'application/ecmascript',
+          'module',
+        ].includes(type)
+      ) {
+        if (['src', 'href', 'xlink:href'].some((name) => attributes.has(name)))
+          issues.add(
+            '最终HTML引用外链script；受保护资源在sandbox内无法携带会话，请在构建时内联JS',
+          );
+        script(body);
+      }
+    } else if (tag === 'style') css(body);
+    for (const [name, value] of attributes) {
+      if (name.startsWith('on')) script(value);
+      if (name === 'style') css(value);
+      if (
+        ['src', 'poster', 'background', 'data', 'xlink:href'].includes(name) &&
+        tag !== 'script'
+      ) {
+        if (
+          !(name === 'xlink:href' && tag === 'use'
+            ? embedded(value)
+            : /^data:/i.test(value.trim()))
+        )
+          issues.add(
+            `标签 ${tag} 的 ${name} 引用非data资源；请把资源内联到最终HTML`,
+          );
+      }
+    }
+    if (['iframe', 'object', 'embed'].includes(tag))
+      issues.add(
+        `最终HTML包含 ${tag}；当前隔离预览不支持嵌套文档或插件，请改为内联内容`,
+      );
+    if (
+      ['audio', 'video', 'source', 'track'].includes(tag) &&
+      attributes.has('src')
+    )
+      issues.add('最终HTML包含媒体资源；当前预览仅支持内联图像和离线交互');
+    if (attributes.has('srcset'))
+      issues.add(
+        '最终HTML使用srcset；请改为单个内联data图像，避免额外资源请求',
+      );
+    if (tag === 'link' && attributes.has('href')) {
+      if (
+        (attributes.get('rel') ?? '')
+          .toLowerCase()
+          .split(/\s+/)
+          .includes('stylesheet')
+      )
+        issues.add(
+          '最终HTML引用link stylesheet；请在构建时把CSS内联到style标签',
+        );
+      else if (!embedded(attributes.get('href')!))
+        issues.add('最终HTML的link引用非data资源；请内联或移除');
+    }
+    if (
+      ['image', 'use', 'feimage'].includes(tag) &&
+      attributes.has('href') &&
+      !embedded(attributes.get('href')!)
+    )
+      issues.add('SVG引用外部资源；请使用内联data图像或文档内SVG片段');
+    if (
+      tag === 'a' &&
+      attributes.has('href') &&
+      !attributes.get('href')!.startsWith('#')
+    )
+      issues.add(
+        '最终HTML包含页面外导航；当前预览仅支持文档内交互，请移除链接或改为页内片段',
+      );
+    if (attributes.has('download'))
+      issues.add(
+        '最终HTML请求文件下载；当前sandbox不支持下载，请使用纯内存交互',
+      );
+    if (
+      (tag === 'form' && attributes.has('action')) ||
+      attributes.has('formaction')
+    )
+      issues.add(
+        '最终HTML包含表单提交目标；当前预览禁止外部提交，请用preventDefault处理纯内存表单',
+      );
+    if (
+      tag === 'base' ||
+      (tag === 'meta' &&
+        attributes.get('http-equiv')?.toLowerCase() === 'refresh')
+    )
+      issues.add('最终HTML包含base或刷新导航；请保留单文档离线交互');
+  }
+  return [...issues];
 }
 function command(
   binary: string,
@@ -254,6 +588,7 @@ export class DockerDeliveryExecution implements DeliveryExecution {
       if (result.exitCode !== 0) break;
     }
     const files: DeliveryEvidence['files'][number][] = [];
+    let previewBytes: Buffer | undefined;
     let total = 0;
     const walk = async (folderPath: string) => {
       for (const entry of await readdir(folderPath, { withFileTypes: true })) {
@@ -271,6 +606,7 @@ export class DockerDeliveryExecution implements DeliveryExecution {
         const path = relative(work, full).split(sep).join('/');
         safePath(path);
         const bytes = await readFile(full);
+        if (path === pkg.previewPath) previewBytes = bytes;
         total += bytes.length;
         if (total > 10000000 || files.length >= 300)
           throw new DomainError('INVALID_INPUT', '构建产物超过上限');
@@ -279,19 +615,40 @@ export class DockerDeliveryExecution implements DeliveryExecution {
     };
     await walk(work);
     files.sort((a, b) => a.path.localeCompare(b.path));
-    if (!files.some((file) => file.path === pkg.previewPath && file.size > 0))
-      results.push({
-        command: ['verify-preview', pkg.previewPath],
-        exitCode: 1,
-        output: '构建后的预览入口不存在或为空',
-      });
+    let previewIssues = ['构建后的预览入口不存在或为空'];
+    if (previewBytes?.length) {
+      try {
+        previewIssues = deliveryPreviewIssues(
+          new TextDecoder('utf-8', { fatal: true }).decode(previewBytes),
+        );
+      } catch {
+        previewIssues = [
+          '构建后的预览入口不是有效UTF-8 HTML，请输出完整文本入口',
+        ];
+      }
+    }
+    results.push({
+      command: ['verify-preview', pkg.previewPath],
+      exitCode: previewIssues.length ? 1 : 0,
+      output: previewIssues.length
+        ? previewIssues.join('\n')
+        : '构建后的入口符合单HTML、内联经典JS/CSS、纯内存预览的静态契约；仍须浏览器验收，CSP和授权继续生效',
+    });
     const evidence: DeliveryEvidence = {
       artifactRef: ref,
       contentHash: digest(JSON.stringify(files)),
       files,
       commands: results,
+      execution: {
+        kind: 'docker',
+        image: this.config.image,
+        network: 'none',
+        user: '1000:1000',
+        browserValidation: 'not_performed',
+      },
       passed:
-        results.length === pkg.testCommands.length + pkg.buildCommands.length &&
+        results.length ===
+          pkg.testCommands.length + pkg.buildCommands.length + 1 &&
         results.every((c) => c.exitCode === 0),
       verifiedAt: new Date().toISOString(),
     };

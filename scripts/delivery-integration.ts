@@ -11,7 +11,10 @@ import {
 } from '../packages/storage-postgres/src/index';
 import type {
   DeliveryStart,
+  DraftFence,
   DeploymentReceipt,
+  ExtensionDraftAction,
+  StoredSession,
 } from '../packages/core/src/index';
 const keys = [
   'DATABASE_ADMIN_URL',
@@ -394,6 +397,164 @@ try {
     workspaceId: workspace.id,
     actorId: member.identity.id,
   };
+  const reloginActor = () =>
+    collaboration.createSession({
+      login: {
+        providerId: session.identity.providerId,
+        subject: session.identity.subject,
+        displayName: session.identity.displayName,
+        canCreateWorkspace: session.identity.canCreateWorkspace,
+      },
+      tokenHash: createHash('sha256').update(randomUUID()).digest('hex'),
+      encryptedCredential: 'isolated-relogin-credential',
+      expiresAt: new Date(Date.now() + 3600000).toISOString(),
+    });
+  async function approvedDraft(
+    authSession: StoredSession,
+    deploymentAction: ExtensionDraftAction,
+  ) {
+    const proposed = await projects.createDraft(
+      { workspaceId: workspace.id, actorId: authSession.identity.id },
+      authSession.id,
+      project.id,
+      '新会话部署权限测试',
+      deploymentAction,
+      randomUUID(),
+    );
+    await projects.reviewDraft(scope, proposed.id, 1, true);
+    const claimed = await queue.claim(workerId, 30000);
+    assert.equal(claimed?.reference, proposed.id);
+    return { draft: proposed, fence: { job: claimed!, workerId } };
+  }
+  async function finishPublication(
+    deploymentFence: DraftFence,
+    publication: DeploymentReceipt,
+  ) {
+    assert.equal(await workerProjects.beginAction(deploymentFence), true);
+    assert.equal(
+      await workerRepository.recordDeployment(
+        deploymentFence,
+        run.id,
+        publication,
+      ),
+      true,
+    );
+    await workerProjects.finishAction(deploymentFence, {
+      status: 'succeeded',
+      receipt: { status: publication.status, reference: publication.id },
+    });
+    await queue.complete(deploymentFence.job, workerId);
+  }
+  const relogged = await reloginActor();
+  assert.equal(relogged.identity.id, session.identity.id);
+  assert.notEqual(relogged.id, session.id);
+  const redeploy = await approvedDraft(relogged, action);
+  // The new immutable draft owns execution credentials. The old run session is
+  // history, so its revocation must not replace or invalidate the new session.
+  await fixture.query(
+    'UPDATE tandem.sessions SET revoked_at=clock_timestamp() WHERE id=$1',
+    [session.id],
+  );
+  const reloggedContext = await workerRepository.deploymentContext(
+    redeploy.fence,
+  );
+  assert.equal(reloggedContext?.session.id, relogged.id);
+  assert.equal(reloggedContext?.session.identity.id, session.identity.id);
+  assert.equal(reloggedContext?.run.sessionId, session.id);
+  assert.equal(
+    await workerRepository.deploymentWriteAllowed(redeploy.fence),
+    true,
+  );
+  assert.equal(
+    await workerRepository.deploymentContext({
+      ...redeploy.fence,
+      job: { ...redeploy.fence.job, token: '999999' },
+    }),
+    null,
+  );
+  await fixture.query(
+    'UPDATE tandem.sessions SET revoked_at=NULL WHERE id=$1',
+    [session.id],
+  );
+  await finishPublication(redeploy.fence, {
+    ...receipt,
+    id: redeploy.draft.id,
+    previousDeploymentId: receipt.id,
+  });
+  const rollbackSession = await reloginActor();
+  const rollback = await approvedDraft(rollbackSession, {
+    kind: 'delivery.rollback',
+    runId: run.id,
+    deploymentId: redeploy.draft.id,
+    contentHash: artifact.contentHash,
+    version: 0,
+  });
+  assert.equal(
+    (await workerRepository.deploymentContext(rollback.fence))?.session.id,
+    rollbackSession.id,
+  );
+  await finishPublication(rollback.fence, {
+    ...receipt,
+    id: rollback.draft.id,
+    status: 'rolled_back',
+    previousDeploymentId: redeploy.draft.id,
+  });
+  assert.equal(
+    (await repository.detail(scope, run.id)).run.sessionId,
+    session.id,
+  );
+  assert.equal(
+    (await repository.detail(scope, run.id)).run.deployment?.status,
+    'rolled_back',
+  );
+
+  const wrongActor = await approvedDraft(member, action);
+  assert.ok(await workerProjects.workerContext(wrongActor.fence));
+  assert.equal(
+    await workerRepository.deploymentContext(wrongActor.fence),
+    null,
+  );
+  assert.equal(
+    await workerRepository.deploymentWriteAllowed(wrongActor.fence),
+    false,
+  );
+  await workerProjects.finishAction(wrongActor.fence, {
+    status: 'failed',
+    error: 'ACTOR_SCOPE_MISMATCH',
+  });
+  await queue.complete(wrongActor.fence.job, workerId);
+  for (const invalidation of ['revoked', 'expired'] as const) {
+    const invalidSession = await reloginActor();
+    const invalidDraft = await approvedDraft(invalidSession, action);
+    if (invalidation === 'revoked')
+      await fixture.query(
+        'UPDATE tandem.sessions SET revoked_at=clock_timestamp() WHERE id=$1',
+        [invalidSession.id],
+      );
+    else
+      await fixture.query(
+        "UPDATE tandem.sessions SET expires_at=clock_timestamp()-interval '1 second' WHERE id=$1",
+        [invalidSession.id],
+      );
+    // A newer valid login cannot rescue the already-approved draft's invalid
+    // frozen session; the approver/session may never be silently substituted.
+    await reloginActor();
+    assert.equal(
+      await workerRepository.deploymentContext(invalidDraft.fence),
+      null,
+    );
+    assert.equal(
+      await workerRepository.deploymentWriteAllowed(invalidDraft.fence),
+      false,
+    );
+    assert.equal(await workerProjects.beginAction(invalidDraft.fence), false);
+    assert.equal(await workerProjects.workerContext(invalidDraft.fence), null);
+    assert.equal(
+      (await projects.draft(scope, invalidDraft.draft.id)).status,
+      'failed',
+    );
+    await queue.complete(invalidDraft.fence.job, workerId);
+  }
   const ownerWrite = await repository.start(member, {
     ...input,
     requestId: randomUUID(),
@@ -463,7 +624,7 @@ try {
     'needs_auth',
   );
   console.log(
-    '交付PG集成通过：隔离数据库0001–0008迁移、幂等启动、身份/项目授权、预算与检查点续跑、租约拒写、统一部署版本/摘要、未知结果核对及显式新提案、取消阻断关联工具草案、owner仅viewer时拒绝部署、撤权停止。',
+    '交付PG集成通过：隔离数据库0001–0009迁移、幂等启动、身份/项目授权、预算与检查点续跑、租约拒写、统一部署版本/摘要、未知结果核对及显式新提案、取消阻断关联工具草案；同actor新会话部署/回滚且保留run原会话，异actor/草案会话撤销或过期拒绝，owner仅viewer时拒绝部署、撤权停止。',
   );
 } finally {
   await Promise.all([app.end(), worker.end(), fixture.end()]);

@@ -92,6 +92,9 @@ async function authenticated(page: Page) {
   );
 }
 async function navigate(page: Page, name: string) {
+  await expect(
+    page.getByRole('combobox', { name: '工作空间', exact: true }),
+  ).toBeVisible();
   const menu = page.getByRole('button', { name: '展开导航' });
   if (await menu.isVisible()) await menu.click();
   await page
