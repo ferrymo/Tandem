@@ -1,0 +1,32 @@
+:root {
+  --color-primary: #3964fe;
+  --color-primary-soft: #eef2ff;
+  --color-text: #0f1115;
+  --color-text-secondary: #626b78;
+  --color-neutral-muted: #81858c;
+  --color-background: #f9fafb;
+  --color-surface: #ffffff;
+  --color-divider: #e9eaf0;
+  --color-control-border: #81858c;
+  --color-success-marker: #22c55e;
+  --color-success-text: #15803d;
+  --color-warning-marker: #f59e0b;
+  --color-warning-text: #a16207;
+  --color-danger-marker: #ef4444;
+  --color-danger-text: #b42318;
+  --font-body:
+    Inter, -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Microsoft YaHei',
+    sans-serif;
+  --font-code: ui-monospace, Consolas, monospace;
+  --font-size-body: 14px;
+  --font-size-secondary: 13px;
+  --radius-control: 6px;
+  --radius-surface: 8px;
+  --control-height: 36px;
+  --space-1: 4px;
+  --space-2: 8px;
+  --space-3: 12px;
+  --space-4: 16px;
+  --space-6: 24px;
+  --space-8: 32px;
+}

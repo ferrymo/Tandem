@@ -1,0 +1,15 @@
+{
+  "name": "@tandem/agent-runtime",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "exports": "./src/index.ts",
+  "scripts": {
+    "typecheck": "tsc --noEmit"
+  },
+  "dependencies": {
+    "@tandem/core": "workspace:*",
+    "@tandem/application": "workspace:*",
+    "@tandem/capabilities": "workspace:*"
+  }
+}

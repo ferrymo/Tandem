@@ -1,0 +1,19 @@
+{
+  "name": "@tandem/worker",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "build": "tsup src/index.ts --format esm --target node22 --out-dir dist --no-splitting",
+    "typecheck": "tsc --noEmit"
+  },
+  "dependencies": {
+    "@tandem/core": "workspace:*",
+    "@tandem/agent-runtime": "workspace:*",
+    "@tandem/platform": "workspace:*",
+    "@tandem/storage-postgres": "workspace:*",
+    "pino": "10.4.0",
+    "zod": "4.6.7",
+    "pg": "8.23.1"
+  }
+}

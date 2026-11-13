@@ -1,0 +1,35 @@
+name: tandem-zentao
+services:
+  zentao:
+    image: easysoft/zentao:22.7-20261104@sha256:b0ddfeb5cd94b04a82d5052d847767f3186843ccd88aab2cfe1d093e32ecea20
+    environment:
+      MYSQL_INTERNAL: 'true'
+      PHP_SESSION_TYPE: files
+      # REST and Web sessions use separate paths in the 22.7 router.
+      ZT_SESSION_PATH: /data/php/session
+      ZT_APISESSION_PATH: /data/php/apisession
+      ZT_ADMINER_ENABLE: 'false'
+      TZ: Asia/Shanghai
+    ports:
+      - '127.0.0.1:8088:80'
+    volumes:
+      - zentao-data:/data
+    healthcheck:
+      test:
+        [
+          'CMD',
+          'curl',
+          '--fail',
+          '--silent',
+          '--max-time',
+          '5',
+          'http://127.0.0.1/',
+        ]
+      interval: 10s
+      timeout: 6s
+      start_period: 60s
+      retries: 20
+    restart: unless-stopped
+    mem_limit: 2g
+volumes:
+  zentao-data:

@@ -1,0 +1,16 @@
+{
+  "name": "@tandem/mcp",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "build": "tsup src/index.ts --format esm --target node22 --out-dir dist --no-splitting",
+    "typecheck": "tsc --noEmit"
+  },
+  "dependencies": {
+    "@modelcontextprotocol/sdk": "1.32.2",
+    "@tandem/platform": "workspace:*",
+    "pino": "10.4.0",
+    "zod": "4.6.7"
+  }
+}
