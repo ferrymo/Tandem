@@ -149,6 +149,67 @@ test('未配置身份时不提供免登录或假账号', async ({ page }) => {
   ).toBeVisible();
 });
 
+for (const scenario of [
+  {
+    name: '保留有权限的目标空间',
+    requested: b.id,
+    spaces: [a, b],
+    selected: b.id,
+  },
+  {
+    name: '无权限或不存在时回退到可用空间',
+    requested: '00000000-0000-4000-8000-000000000099',
+    spaces: [a, b],
+    selected: a.id,
+  },
+  { name: '没有空间时清理无效目标', requested: b.id, spaces: [], selected: '' },
+]) {
+  test(`未登录的空间深链：${scenario.name}`, async ({ page }) => {
+    let loggedIn = false;
+    const reads: string[] = [];
+    await page.route('**/api/session', (route) => {
+      if (route.request().method() === 'POST') {
+        loggedIn = true;
+        return route.fulfill({ json: { user } });
+      }
+      return route.fulfill({
+        json: {
+          user: loggedIn ? user : null,
+          login: { configured: true, label: '协作账号' },
+        },
+      });
+    });
+    await page.route('**/api/workspaces', (route) =>
+      route.fulfill({ json: { workspaces: scenario.spaces } }),
+    );
+    await page.route('**/api/workspaces/*', (route) => {
+      const id = new URL(route.request().url()).pathname.split('/').at(-1)!;
+      reads.push(id);
+      return route.fulfill({ json: overview(id === b.id ? b : a) });
+    });
+    await page.goto(`/?view=analysis&workspace=${scenario.requested}`);
+    await page.getByLabel('协作账号', { exact: true }).fill('zhangsan');
+    await page.getByLabel('密码', { exact: true }).fill('test-only-password');
+    await page.getByRole('button', { name: '登录', exact: true }).click();
+    await expect(
+      page.getByRole('combobox', { name: '工作空间', exact: true }),
+    ).toHaveValue(scenario.selected);
+    await expect
+      .poll(() => new URL(page.url()).searchParams.get('workspace'))
+      .toBe(scenario.selected || null);
+    expect(new URL(page.url()).searchParams.get('view')).toBe('analysis');
+    if (scenario.selected) {
+      await expect.poll(() => reads.length).toBeGreaterThan(0);
+      expect(reads.every((id) => id === scenario.selected)).toBe(true);
+    } else {
+      await expect(
+        page.getByRole('combobox', { name: '工作空间', exact: true }),
+      ).toBeDisabled();
+      expect(reads).toEqual([]);
+    }
+  });
+}
+
 test('登录、创建空间与 T 组初始状态', async ({ page }) => {
   let loggedIn = false;
   let created = false;

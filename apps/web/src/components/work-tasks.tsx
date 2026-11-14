@@ -450,6 +450,7 @@ function TaskDetail({
     description: '描述',
     assigneeId: '执行人',
     collaboratorIds: '协助人',
+    projectId: '项目',
     moduleId: '模块',
     status: '状态',
     plannedStart: '计划开始',
@@ -461,13 +462,15 @@ function TaskDetail({
     attachment: '附件',
   };
   const format = (key: string, value: unknown) => {
-    if (value === null || value === '') return '未设置';
+    if (value === null || value === undefined || value === '') return '未设置';
     if (key === 'status') return statusLabels[String(value)];
     if (key === 'assigneeId') return person(data, String(value));
     if (key === 'collaboratorIds' && Array.isArray(value))
       return value.map((id) => person(data, String(id))).join('、') || '无';
     if (key === 'moduleId')
       return data.modules.find((m) => m.id === value)?.name ?? '未分模块';
+    if (key === 'projectId')
+      return data.projects.find((p) => p.id === value)?.name ?? '不可见项目';
     if (key === 'attachment' && typeof value === 'object' && value) {
       const attachment = value as { name: string; size: number };
       return `${attachment.name}（${Math.max(1, Math.ceil(attachment.size / 1024))} KB）`;

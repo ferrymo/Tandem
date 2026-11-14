@@ -11,6 +11,7 @@ import { WorkEmpty } from './work-shared';
 import {
   actualForDay,
   dateDays,
+  hasResourceActivity,
   isWorkday,
   plannedForDay,
   projectResourceGroups,
@@ -156,52 +157,6 @@ export function ResourceAnalysis({ data }: WorkSurfaceProps) {
         t.plannedHours === null ||
         !t.assigneeId),
   );
-  const number = (n: number) => Number(n.toFixed(1));
-  function cell(
-    tasks: WorkTask[],
-    entries: WorkEffort[],
-    date: string,
-    capacity: number | null,
-    detail = false,
-  ) {
-    const plan = tasks.reduce((n, t) => n + plannedForDay(t, date), 0),
-      actual = actualForDay(entries, date);
-    return (
-      <td
-        key={date}
-        className={`${!isWorkday(date) ? 'weekend ' : ''}${capacity !== null && plan > capacity ? 'overloaded' : ''}`}
-      >
-        {detail ? (
-          <span className="cell-hours">
-            {plan || actual ? `${number(plan)} / ${number(actual)} h` : '—'}
-          </span>
-        ) : plan || actual ? (
-          <div className="resource-bars">
-            <div aria-label={`计划${number(plan)}小时`}>
-              <span
-                className="planned-bar"
-                style={{
-                  width: `${Math.min(100, (plan / (capacity || Math.max(plan, actual, 8))) * 100)}%`,
-                }}
-              />
-              <b>{number(plan)}h</b>
-            </div>
-            <div aria-label={`实际${number(actual)}小时`}>
-              <span
-                className="actual-bar"
-                style={{
-                  width: `${Math.min(100, (actual / (capacity || Math.max(plan, actual, 8))) * 100)}%`,
-                }}
-              />
-              <b>{number(actual)}h</b>
-            </div>
-          </div>
-        ) : (
-          <span className="muted">—</span>
-        )}
-      </td>
-    );
-  }
   return (
     <>
       <div className="analysis-toolbar">
@@ -328,7 +283,7 @@ export function ResourceAnalysis({ data }: WorkSurfaceProps) {
                         : [...old, row.id],
                     )
                   }
-                  cell={cell}
+                  cell={resourceCell}
                 />
               ))}
             </tbody>
@@ -353,6 +308,66 @@ export function ResourceAnalysis({ data }: WorkSurfaceProps) {
     </>
   );
 }
+export function resourceCell(
+  tasks: WorkTask[],
+  entries: WorkEffort[],
+  date: string,
+  capacity: number | null,
+  detail = false,
+) {
+  const number = (n: number) => Number(n.toFixed(1));
+  const plan = tasks.reduce((n, task) => n + plannedForDay(task, date), 0),
+    actual = actualForDay(entries, date);
+  return (
+    <td
+      key={date}
+      className={`${!isWorkday(date) ? 'weekend ' : ''}${capacity !== null && plan > capacity ? 'overloaded' : ''}`}
+    >
+      {detail ? (
+        <span className="cell-hours">
+          {plan || actual
+            ? `${plan ? number(plan) : '—'} / ${actual ? number(actual) : '—'} h`
+            : '—'}
+        </span>
+      ) : plan || actual ? (
+        <div className="resource-bars">
+          <div aria-label={plan ? `计划${number(plan)}小时` : '暂无计划'}>
+            {plan ? (
+              <>
+                <span
+                  className="planned-bar"
+                  style={{
+                    width: `${Math.min(100, (plan / (capacity || Math.max(plan, actual, 8))) * 100)}%`,
+                  }}
+                />
+                <b>{number(plan)}h</b>
+              </>
+            ) : (
+              <span className="muted">—</span>
+            )}
+          </div>
+          <div aria-label={actual ? `实际${number(actual)}小时` : '实际未填报'}>
+            {actual ? (
+              <>
+                <span
+                  className="actual-bar"
+                  style={{
+                    width: `${Math.min(100, (actual / (capacity || Math.max(plan, actual, 8))) * 100)}%`,
+                  }}
+                />
+                <b>{number(actual)}h</b>
+              </>
+            ) : (
+              <span className="muted">—</span>
+            )}
+          </div>
+        </div>
+      ) : (
+        <span className="muted">—</span>
+      )}
+    </td>
+  );
+}
 function ResourceRows({
   row,
   days,
@@ -372,6 +387,9 @@ function ResourceRows({
     detail?: boolean,
   ) => React.ReactNode;
 }) {
+  const children = row.children.filter((child) =>
+    hasResourceActivity(child.tasks, child.efforts, days),
+  );
   const planned = days.reduce(
     (n, date) =>
       n + row.tasks.reduce((sum, task) => sum + plannedForDay(task, date), 0),
@@ -427,7 +445,7 @@ function ResourceRows({
         {days.map((d) => cell(row.tasks, row.efforts, d, row.capacity))}
       </tr>
       {!collapsed
-        ? row.children.map((child) => (
+        ? children.map((child) => (
             <tr key={child.id} className="resource-child">
               <th scope="row">{child.name}</th>
               {days.map((d) => cell(child.tasks, child.efforts, d, null, true))}

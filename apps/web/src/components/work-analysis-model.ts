@@ -39,6 +39,17 @@ export function actualForDay(efforts: WorkEffort[], date: string) {
     .filter((e) => e.date === date)
     .reduce((n, e) => n + e.hours, 0);
 }
+export function hasResourceActivity(
+  tasks: WorkTask[],
+  efforts: WorkEffort[],
+  days: string[],
+) {
+  return days.some(
+    (date) =>
+      tasks.some((task) => plannedForDay(task, date) > 0) ||
+      actualForDay(efforts, date) > 0,
+  );
+}
 export function remainingTasksAt(
   tasks: WorkTask[],
   events: WorkTaskEvent[],

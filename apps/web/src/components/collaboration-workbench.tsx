@@ -330,11 +330,17 @@ export function CollaborationWorkbench() {
       .then((data) => {
         if (controller.signal.aborted) return;
         setWorkspaces(data.workspaces);
-        setWorkspaceId((current) =>
-          data.workspaces.some((space) => space.id === current)
-            ? current
-            : (data.workspaces[0]?.id ?? ''),
-        );
+        setWorkspaceId((current) => {
+          const requested =
+            current ||
+            new URLSearchParams(window.location.search).get('workspace') ||
+            '';
+          return data.workspaces.some((space) => space.id === requested)
+            ? requested
+            : (data.workspaces[0]?.id ?? '');
+        });
+        if (!data.workspaces.length)
+          replaceLocation(locationFor(readView(), ''));
       })
       .catch((cause) => {
         if (!controller.signal.aborted) {
@@ -346,7 +352,12 @@ export function CollaborationWorkbench() {
   }, [user, workspaceRevision, handleError]);
 
   useEffect(() => {
-    if (!user || !workspaceId) return;
+    if (
+      !user ||
+      !workspaceId ||
+      !workspaces?.some((space) => space.id === workspaceId)
+    )
+      return;
     const controller = new AbortController();
     setOverview(null);
     setScopeError('');
@@ -364,7 +375,7 @@ export function CollaborationWorkbench() {
         }
       });
     return () => controller.abort();
-  }, [user, workspaceId, detailRevision, handleError]);
+  }, [user, workspaceId, workspaces, detailRevision, handleError]);
 
   function navigate(next: View) {
     if (restoring.current) return;

@@ -50,7 +50,9 @@
     "local:doctor": "node scripts/doctor.mjs",
     "test:work-management": "tsx --env-file=.env scripts/work-management-integration.ts",
     "test:models": "tsx --env-file=.env scripts/model-channels-integration.ts",
-    "test:connectors": "tsx --env-file=.env scripts/connector-read-integration.ts"
+    "test:connectors": "tsx --env-file=.env scripts/connector-read-integration.ts",
+    "data:seed": "tsx --env-file=.env --env-file=.env.zentao.local scripts/seed-work-management.ts",
+    "data:verify": "tsx --env-file=.env --env-file=.env.zentao.local --env-file=.env.work-fixture.local scripts/verify-work-fixture.ts"
   },
   "devDependencies": {
     "@eslint/js": "10.0.1",
