@@ -40,7 +40,7 @@ adapters/
 - 外部能力经端口注入，在应用启动入口组装。产品页面、角色提示和领域规则不依赖具体下游 SDK、字段或错误语义。
 - 默认采用模块化单体、PostgreSQL + pgvector；没有明确需求不引入微服务、独立向量库或消息中间件。
 
-开发命令在根目录执行，统一使用 `corepack pnpm`：`dev`、`check`、`test:integration`、`build`。环境初始化、浏览器及容器测试见 [04 开发基础](docs/04-开发基础与本地运行.md)。不要使用 pnpm 内置的 `setup`/`doctor` 代替项目的 `local:init`/`local:doctor`。
+使用本机 Node.js 24（24.11+）与 pnpm 10.34.9。开发命令在根目录执行，直接使用 `pnpm`：`dev`、`check`、`test:integration`、`build`。环境初始化、浏览器及容器测试见 [04 开发基础](docs/04-开发基础与本地运行.md)。不要使用 pnpm 内置的 `setup`/`doctor` 代替项目的 `local:init`/`local:doctor`。
 
 账号继承、空间成员和 T 组初始化已实现，配置与 API 见 [05 协作基础与认证](docs/05-协作基础与认证.md)。`test:collaboration` 在隔离数据库和测试协作服务上验证真实生产 HTTP 链路，先执行 `build`；产品不提供免登录身份。身份实例键绑定配置地址，禁止更换站点后复用同号用户的空间权限。
 

@@ -1,4 +1,4 @@
-FROM node:22.23.1-bookworm-slim AS build
+FROM node:24.21.0-bookworm-slim AS build
 WORKDIR /app
 RUN npm install -g pnpm@10.34.9
 COPY . .
@@ -6,7 +6,7 @@ RUN pnpm install --frozen-lockfile
 ENV NEXT_TELEMETRY_DISABLED=1
 RUN pnpm run build
 
-FROM node:22.23.1-bookworm-slim AS web
+FROM node:24.21.0-bookworm-slim AS web
 WORKDIR /app
 ENV NODE_ENV=production NEXT_TELEMETRY_DISABLED=1 HOSTNAME=0.0.0.0 PORT=3000
 COPY --from=build --chown=node:node /app/apps/web/.next/standalone ./

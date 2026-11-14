@@ -6,15 +6,15 @@
 
 ## 本地运行
 
-要求 Node.js 22.13+（仓库固定 22.23.1）、Corepack、Docker Compose。命令在仓库根目录执行。
+使用本机 Node.js 24（24.11+）、pnpm 10.34.9 与 Docker Compose。命令在仓库根目录执行。
 
 ```bash
-corepack pnpm install --frozen-lockfile
-corepack pnpm local:init
-corepack pnpm db:up
-corepack pnpm db:bootstrap
-corepack pnpm db:migrate
-corepack pnpm dev
+pnpm install --frozen-lockfile
+pnpm local:init
+pnpm db:up
+pnpm db:bootstrap
+pnpm db:migrate
+pnpm dev
 ```
 
 打开 <http://127.0.0.1:3000>。主服务同时提供页面和 API；Worker 无 HTTP 端口。初始化生成随机本地密码，不覆盖已有 `.env`；PG 只映射到本机 `55432`。
@@ -22,26 +22,26 @@ corepack pnpm dev
 登录继承协作系统账号，不提供本地密码注册。按 [05 协作基础与认证](docs/05-协作基础与认证.md) 配置现有站点，或按 [06 本地禅道接入](docs/06-本地禅道接入.md) 启动本机 Docker 禅道。本机已使用开源版 22.7 完成真实账号登录、空间创建与 T 组三人初始化；凭据保存在被忽略的 `.env.zentao.local`。创建空间不会自动获得项目授权或开始执行。
 
 ```bash
-corepack pnpm check             # 依赖边界、ESLint、类型、单元测试
-corepack pnpm test:integration  # 创建独立测试库，验证 PG/队列/Worker，结束后清理
-corepack pnpm build             # Web、Worker、MCP 生产构建
-corepack pnpm test:collaboration # 隔离数据库 + 测试协作服务的真实 HTTP 回归，先 build
-corepack pnpm test:projects      # 项目、草案版本、原身份和撤权集成
-corepack pnpm test:capabilities  # 技能、MCP、个人凭证及 Worker 范围集成
-corepack pnpm test:delivery      # 可恢复运行、审批关联和部署回执集成
-corepack pnpm test:execution     # 真实 Docker 测试、构建、健康检查与回滚
-corepack pnpm test:delivery:real # 本机真实模型交付验收，有模型消耗及本地部署写入
+pnpm check             # 依赖边界、ESLint、类型、单元测试
+pnpm test:integration  # 创建独立测试库，验证 PG/队列/Worker，结束后清理
+pnpm build             # Web、Worker、MCP 生产构建
+pnpm test:collaboration # 隔离数据库 + 测试协作服务的真实 HTTP 回归，先 build
+pnpm test:projects      # 项目、草案版本、原身份和撤权集成
+pnpm test:capabilities  # 技能、MCP、个人凭证及 Worker 范围集成
+pnpm test:delivery      # 可恢复运行、审批关联和部署回执集成
+pnpm test:execution     # 真实 Docker 测试、构建、健康检查与回滚
+pnpm test:delivery:real # 本机真实模型交付验收，有模型消耗及本地部署写入
 ```
 
-浏览器测试、容器运行、备份恢复及排错见 [04 开发基础与本地运行](docs/04-开发基础与本地运行.md)。全局 pnpm 异常时继续使用 `corepack pnpm`，Windows 也可使用 `scripts\pnpm.cmd`。
+浏览器测试、容器运行、备份恢复及排错见 [04 开发基础与本地运行](docs/04-开发基础与本地运行.md)。
 
-本地禅道与 Tandem 启动后，运行 `corepack pnpm test:zentao` 验证真实登录、身份连接、已有空间与退出撤销；凭据配置见 [06 本地禅道接入](docs/06-本地禅道接入.md)。该命令不创建空间。
+本地禅道与 Tandem 启动后，运行 `pnpm test:zentao` 验证真实登录、身份连接、已有空间与退出撤销；凭据配置见 [06 本地禅道接入](docs/06-本地禅道接入.md)。该命令不创建空间。
 
 在“连接”绑定现有项目，显式授予成员及 T 组挂靠人项目权限；再到“能力”安装、启用并绑定技能，测试 MCP 后逐工具分类授权。写操作在“关注”或“任务”审阅当前草案版本，批准后由 Worker 使用原账号执行。
 
 T 组需在被忽略的 `.env` 中设置 `MODEL_BASE_URL`、`MODEL_NAME`、`MODEL_API_KEY`，并配置 `TANDEM_EXECUTION_IMAGE` 与共享产物目录 `TANDEM_ARTIFACT_ROOT`；示例见 `.env.example`。执行镜像须预先拉取，Web/Worker 重启后生效。当前执行目标是自包含 Web Demo 和本地演示发布，生产环境发布适配器尚未实现。
 
-`corepack pnpm test:product` 使用真实页面、禅道与 Worker 验证协作功能；`test:delivery:real` 使用已配置模型验证 Demo、审批部署和回滚。两者会写入专用本机验收对象，报告存于被忽略的 `data/acceptance/`；后者按报告恢复，避免重复派活。运行前确认本机 `:8088` 测试系统、账号及模型配置，勿指向生产站点。步骤、API 与证据见 [07 一期实现与验收](docs/07-一期实现与验收.md)。
+`pnpm test:product` 使用真实页面、禅道与 Worker 验证协作功能；`test:delivery:real` 使用已配置模型验证 Demo、审批部署和回滚。两者会写入专用本机验收对象，报告存于被忽略的 `data/acceptance/`；后者按报告恢复，避免重复派活。运行前确认本机 `:8088` 测试系统、账号及模型配置，勿指向生产站点。步骤、API 与证据见 [07 一期实现与验收](docs/07-一期实现与验收.md)。
 
 ## 默认团队：T 组
 

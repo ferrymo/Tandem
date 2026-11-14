@@ -6,7 +6,7 @@ const check = (name, ok) => {
   if (!ok) failed = true;
 };
 const [major, minor] = process.versions.node.split('.').map(Number);
-check('Node.js 22.13+', major === 22 && minor >= 13);
+check('Node.js 24.11+', major > 24 || (major === 24 && minor >= 11));
 check('.env 已初始化', existsSync('.env'));
 check('依赖已安装', existsSync('node_modules/.modules.yaml'));
 const docker = spawnSync('docker', ['info', '--format', '{{.ServerVersion}}'], {

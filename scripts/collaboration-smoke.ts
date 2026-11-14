@@ -14,7 +14,7 @@ import pg from 'pg';
 // The product has no alternate login route or development identity bypass.
 const root = resolve(import.meta.dirname, '..');
 if (!existsSync(resolve(root, 'apps/web/.next/standalone/apps/web/server.js')))
-  throw new Error('请先执行 corepack pnpm build，再运行协作 HTTP 回归');
+  throw new Error('请先执行 pnpm build，再运行协作 HTTP 回归');
 const databaseKeys = [
   'DATABASE_ADMIN_URL',
   'DATABASE_MIGRATION_URL',

@@ -4,7 +4,7 @@
   "private": true,
   "type": "module",
   "scripts": {
-    "build": "tsup src/index.ts --format esm --target node22 --out-dir dist --no-splitting",
+    "build": "tsup src/index.ts --format esm --target node24 --out-dir dist --no-splitting",
     "typecheck": "tsc --noEmit"
   },
   "dependencies": {
