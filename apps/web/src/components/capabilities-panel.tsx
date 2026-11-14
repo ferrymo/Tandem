@@ -1072,7 +1072,7 @@ function ServerRow({
                       arguments: argumentsValue,
                       requestId: crypto.randomUUID(),
                     },
-                    '请求已处理；写工具请到关注页审阅草案。',
+                    '请求已处理；写工具请到 Agents → 运行与执行记录，选择对应禅道项目后审阅草案。',
                   );
                 } catch {
                   setError('工具参数须为有效 JSON 对象。');

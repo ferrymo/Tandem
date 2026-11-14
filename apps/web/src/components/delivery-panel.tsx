@@ -1,7 +1,9 @@
 'use client';
 import { useState } from 'react';
-import { Button, Drawer, Input, Modal, Tabs } from 'antd';
+import { Button, Drawer, Input, Modal, Select, Tabs } from 'antd';
+import { displayDeliveryModel, formatDeliveryChannelModel } from '@tandem/core';
 import type {
+  AvailableDeliveryChannel,
   AgentRole,
   DeliveryDetail,
   DeliveryProfiles,
@@ -69,6 +71,7 @@ type ProfilesResult = {
   profiles: DeliveryProfiles;
   model: { configured: boolean; name: string };
   execution: { configured: boolean };
+  modelChannels?: AvailableDeliveryChannel[];
 };
 export function DeliveryPanel({
   client,
@@ -207,9 +210,11 @@ export function DeliveryPanel({
                   <p>{agent.description}</p>
                   <p className="muted">
                     模型：
-                    {profiles.data?.profiles[agent.role as AgentRole]?.model ||
-                      profiles.data?.model.name ||
-                      '待配置'}
+                    {displayDeliveryModel(
+                      profiles.data?.profiles[agent.role as AgentRole]?.model ||
+                        profiles.data?.model.name ||
+                        '待配置',
+                    )}
                   </p>
                 </div>
                 <span className="state-label">
@@ -511,6 +516,16 @@ function TeamConfiguration({
   close: () => void;
 }) {
   const [profiles, setProfiles] = useState<DeliveryProfiles>(initial.profiles);
+  const [customModels, setCustomModels] = useState<Record<AgentRole, boolean>>(
+    () =>
+      Object.fromEntries(
+        (['designer', 'architect', 'engineer'] as const).map((role) => [
+          role,
+          !!initial.profiles[role]?.model &&
+            !initial.profiles[role]?.model.startsWith('channel:'),
+        ]),
+      ) as Record<AgentRole, boolean>,
+  );
   const [error, setError] = useState('');
   const [busy, setBusy] = useState(false);
   const { requestClose, confirmation } = useUnsavedChanges(
@@ -540,7 +555,7 @@ function TeamConfiguration({
         width={720}
       >
         <p className="muted">
-          模型服务与密钥由部署环境配置。角色可选择该服务支持的模型并补充要求。
+          为各角色选择已配置的模型渠道，或使用部署默认模型。渠道版本随配置固定，密钥不会显示在这里。
         </p>
         <form
           onSubmit={(e) => {
@@ -548,44 +563,125 @@ function TeamConfiguration({
             void save();
           }}
         >
-          {(['designer', 'architect', 'engineer'] as const).map((role) => (
-            <fieldset className="role-fields" key={role}>
-              <legend>{roleNames[role]}</legend>
-              <label className="field">
-                模型名称
-                <Input
-                  value={profiles[role]?.model ?? ''}
-                  placeholder={initial.model.name || '使用部署环境默认模型'}
-                  onChange={(e) =>
-                    setProfiles((current) => ({
-                      ...current,
-                      [role]: { ...current[role], model: e.target.value },
-                    }))
-                  }
-                  maxLength={200}
-                  disabled={busy}
-                />
-              </label>
-              <label className="field">
-                补充要求
-                <Input.TextArea
-                  value={profiles[role]?.instructions ?? ''}
-                  onChange={(e) =>
-                    setProfiles((current) => ({
-                      ...current,
-                      [role]: {
-                        ...current[role],
-                        instructions: e.target.value,
-                      },
-                    }))
-                  }
-                  rows={2}
-                  maxLength={6000}
-                  disabled={busy}
-                />
-              </label>
-            </fieldset>
-          ))}
+          {(['designer', 'architect', 'engineer'] as const).map((role) => {
+            const selected = profiles[role]?.model ?? '';
+            const available = (initial.modelChannels ?? []).flatMap((channel) =>
+              channel.models.map((model) =>
+                formatDeliveryChannelModel(channel.id, channel.version, model),
+              ),
+            );
+            const stale =
+              selected.startsWith('channel:') && !available.includes(selected);
+            const choices = [
+              {
+                label: '部署环境',
+                options: [
+                  {
+                    value: '',
+                    label: initial.model.name
+                      ? `使用部署默认 · ${initial.model.name}`
+                      : '使用部署默认模型',
+                  },
+                  { value: '__custom__', label: '手动填写部署模型' },
+                ],
+              },
+              ...(initial.modelChannels ?? []).map((channel) => ({
+                label: `${channel.name} · ${channel.protocol} · v${channel.version}${!channel.enabled ? ' · 已停用' : !channel.configured ? ' · 待配置凭据' : ''}`,
+                options: channel.models.map((model) => ({
+                  value: formatDeliveryChannelModel(
+                    channel.id,
+                    channel.version,
+                    model,
+                  ),
+                  label: model,
+                  disabled: !channel.enabled || !channel.configured,
+                })),
+              })),
+              ...(stale
+                ? [
+                    {
+                      label: '原固定版本',
+                      options: [
+                        {
+                          value: selected,
+                          label: `${displayDeliveryModel(selected)} · 配置已变化，请重新选择`,
+                          disabled: true,
+                        },
+                      ],
+                    },
+                  ]
+                : []),
+            ];
+            return (
+              <fieldset className="role-fields" key={role}>
+                <legend>{roleNames[role]}</legend>
+                <div className="field">
+                  <label htmlFor={`${role}-model`}>模型渠道与模型</label>
+                  <Select
+                    id={`${role}-model`}
+                    value={customModels[role] ? '__custom__' : selected}
+                    options={choices}
+                    disabled={busy}
+                    showSearch
+                    optionFilterProp="label"
+                    onChange={(value) => {
+                      setCustomModels((current) => ({
+                        ...current,
+                        [role]: value === '__custom__',
+                      }));
+                      setProfiles((current) => ({
+                        ...current,
+                        [role]: {
+                          ...current[role],
+                          model: value === '__custom__' ? '' : value,
+                        },
+                      }));
+                    }}
+                  />
+                </div>
+                {customModels[role] ? (
+                  <label className="field">
+                    部署渠道模型名称
+                    <Input
+                      value={selected}
+                      placeholder={
+                        initial.model.name || '填写部署服务支持的模型标识'
+                      }
+                      maxLength={500}
+                      disabled={busy}
+                      onChange={(event) =>
+                        setProfiles((current) => ({
+                          ...current,
+                          [role]: {
+                            ...current[role],
+                            model: event.target.value,
+                          },
+                        }))
+                      }
+                    />
+                  </label>
+                ) : null}
+                <label className="field">
+                  补充要求
+                  <Input.TextArea
+                    value={profiles[role]?.instructions ?? ''}
+                    onChange={(e) =>
+                      setProfiles((current) => ({
+                        ...current,
+                        [role]: {
+                          ...current[role],
+                          instructions: e.target.value,
+                        },
+                      }))
+                    }
+                    rows={2}
+                    maxLength={6000}
+                    disabled={busy}
+                  />
+                </label>
+              </fieldset>
+            );
+          })}
           <ErrorText value={error} />
           <div className="dialog-actions">
             <Button disabled={busy} onClick={requestClose}>

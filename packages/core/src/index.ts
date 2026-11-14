@@ -6,6 +6,10 @@ export type ExternalRef = Readonly<{
 export * from './collaboration';
 export * from './projects';
 export * from './capabilities';
+export * from './work-management';
+export * from './work-secrets';
+export * from './delivery-model-routing';
+export * from './connector-read';
 export type ResourceScope = Readonly<{ workspaceId: string; actorId: string }>;
 export class DomainError extends Error {
   constructor(

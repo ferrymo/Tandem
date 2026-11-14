@@ -2,13 +2,14 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { Button, Modal } from 'antd';
 import { LoginPanel } from './login-panel';
-import { ProductWorkspace } from './product-workspace';
+import { WorkManagement } from './work-management';
 import {
   CreateWorkspaceDialog,
   LoadingRows,
   MembersDialog,
 } from './workspace-dialogs';
 import { Brand, NavIcon } from './workbench-icons';
+import type { WorkMenu } from './work-management-types';
 import {
   guardUnsavedNavigation,
   hasUnsavedChanges,
@@ -32,7 +33,17 @@ type Session = {
 
 function readView(): View {
   const value = new URLSearchParams(window.location.search).get('view');
-  return navigation.find((item) => item.view === value)?.view ?? 'focus';
+  const aliases: Record<string, View> = {
+    focus: 'projects',
+    observe: 'analysis',
+    connect: 'connectors',
+    capabilities: 'agents',
+  };
+  return (
+    navigation.find((item) => item.view === value)?.view ??
+    aliases[value ?? ''] ??
+    'projects'
+  );
 }
 function locationFor(view: View, workspaceId: string) {
   const query = new URLSearchParams({ view });
@@ -68,7 +79,7 @@ export function CollaborationWorkbench() {
   const [scopeError, setScopeError] = useState('');
   const [workspaceRevision, setWorkspaceRevision] = useState(0);
   const [detailRevision, setDetailRevision] = useState(0);
-  const [view, setView] = useState<View>('focus');
+  const [view, setView] = useState<View>('projects');
   const [menuOpen, setMenuOpen] = useState(false);
   const [createOpen, setCreateOpen] = useState(false);
   const [membersOpen, setMembersOpen] = useState(false);
@@ -77,6 +88,15 @@ export function CollaborationWorkbench() {
   const [accountError, setAccountError] = useState('');
   const [copied, setCopied] = useState(false);
   const [navigationNotice, setNavigationNotice] = useState('');
+  const [menuSettings, setMenuSettings] = useState<{
+    workspaceId: string;
+    menus: WorkMenu[];
+  } | null>(null);
+  const onMenus = useCallback(
+    (workspaceId: string, menus: WorkMenu[]) =>
+      setMenuSettings({ workspaceId, menus }),
+    [],
+  );
   const currentIndex = useRef(0);
   const historyId = useRef('');
   const currentUrl = useRef('');
@@ -428,7 +448,24 @@ export function CollaborationWorkbench() {
   const workspace =
     overview?.workspace ??
     workspaces?.find((space) => space.id === workspaceId);
-  const title = navigation.find((item) => item.view === view)?.label ?? '关注';
+  const scopedMenus =
+    menuSettings?.workspaceId === workspaceId ? menuSettings.menus : [];
+  const visibleNavigation = navigation
+    .map((item, index) => {
+      const override = scopedMenus.find((m) => m.key === item.view);
+      return {
+        ...item,
+        label: override?.label ?? item.label,
+        visible: override?.visible ?? true,
+        order: override?.sortOrder ?? index * 10,
+      };
+    })
+    .filter((item) => item.visible || item.view === 'admin')
+    .sort((a, b) => a.order - b.order);
+  const title =
+    visibleNavigation.find((item) => item.view === view)?.label ??
+    navigation.find((item) => item.view === view)?.label ??
+    '项目';
   return (
     <div className="workbench">
       <a className="skip-link" href="#main">
@@ -442,7 +479,7 @@ export function CollaborationWorkbench() {
           <Brand />
         </div>
         <nav aria-label="主要导航">
-          {navigation.map((item) => (
+          {visibleNavigation.map((item) => (
             <a
               key={item.view}
               href={locationFor(item.view, workspaceId)}
@@ -465,7 +502,7 @@ export function CollaborationWorkbench() {
           ))}
         </nav>
         <div className="sidebar-foot">
-          <span>人与 Agent 协作</span>
+          <span>让团队的工作井然有序</span>
           <a href="/health">基础服务状态</a>
         </div>
       </aside>
@@ -528,7 +565,16 @@ export function CollaborationWorkbench() {
               <h1>{title}</h1>
               <p className="muted">
                 {workspace
-                  ? `${workspace.name} · ${roleNames[workspace.role]}`
+                  ? ({
+                      projects: '从立项到交付，把每个项目放在心里。',
+                      documents: '知识有归属，协作有上下文。',
+                      tasks: '明确下一步，让工作持续向前。',
+                      analysis: '看清计划与投入，合理安排团队的每一天。',
+                      agents: '把合适的能力，交给合适的 Agent。',
+                      connectors: '连接团队正在使用的工具。',
+                      admin: '维护团队、权限与工作空间设置。',
+                    }[view as string] ??
+                    `${workspace.name} · ${roleNames[workspace.role]}`)
                   : '建立团队的协作空间'}
               </p>
             </div>
@@ -581,12 +627,13 @@ export function CollaborationWorkbench() {
           ) : !overview && !scopeError ? (
             <LoadingRows />
           ) : overview ? (
-            <ProductWorkspace
+            <WorkManagement
               key={overview.workspace.id}
               view={view}
               overview={overview}
               navigate={navigate}
               onError={handleError}
+              onMenus={onMenus}
             />
           ) : null}
         </main>

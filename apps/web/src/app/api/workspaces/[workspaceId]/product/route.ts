@@ -17,6 +17,7 @@ import {
 } from '../../../../../server/product';
 import { productCommand } from '../../../../../server/product-http';
 import type { ProjectDraftAction } from '@tandem/core';
+import { parseDeliveryChannelModel } from '@tandem/core';
 
 type Context = { params: Promise<{ workspaceId: string }> };
 export function GET(request: Request, context: Context) {
@@ -24,10 +25,8 @@ export function GET(request: Request, context: Context) {
     const session = await requireSession();
     const workspaceId = uuid.parse((await context.params).workspaceId);
     await collaboration().overview(session, workspaceId);
-    const { projects, delivery, capabilities, scope } = productServices(
-      session,
-      workspaceId,
-    );
+    const { projects, delivery, capabilities, modelChannels, scope } =
+      productServices(session, workspaceId);
     const query = new URL(request.url).searchParams;
     const project = () => uuid.parse(query.get('project'));
     const page = z.coerce
@@ -125,11 +124,31 @@ export function GET(request: Request, context: Context) {
             uuid.parse(query.get('run')),
           ),
         );
-      case 'profiles':
+      case 'profiles': {
+        const profiles = await delivery.profiles(session, workspaceId);
+        const channels = await modelChannels.available(scope);
+        const configured = Object.values(profiles).every((profile) => {
+          try {
+            const reference = parseDeliveryChannelModel(profile.model);
+            return reference
+              ? channels.some(
+                  (channel) =>
+                    channel.id === reference.channelId &&
+                    channel.version === reference.version &&
+                    channel.enabled &&
+                    channel.configured &&
+                    channel.models.includes(reference.model),
+                )
+              : process.env.MODEL_CONFIGURED === 'true';
+          } catch {
+            return false;
+          }
+        });
         return jsonResponse({
-          profiles: await delivery.profiles(session, workspaceId),
+          profiles,
+          modelChannels: channels,
           model: {
-            configured: process.env.MODEL_CONFIGURED === 'true',
+            configured,
             name: process.env.MODEL_NAME ?? '',
           },
           execution: {
@@ -138,6 +157,7 @@ export function GET(request: Request, context: Context) {
               !!process.env.TANDEM_EXECUTION_IMAGE,
           },
         });
+      }
       case 'capabilities':
         return jsonResponse(await capabilities.overview(scope));
       case 'capability-bindings':

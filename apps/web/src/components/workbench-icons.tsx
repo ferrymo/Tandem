@@ -5,23 +5,40 @@ export function Brand() {
     <span className="brand">
       <svg
         aria-hidden="true"
-        width="24"
-        height="24"
-        viewBox="0 0 24 24"
+        width="30"
+        height="30"
+        viewBox="0 0 32 32"
         fill="none"
-        stroke="currentColor"
-        strokeWidth="1.5"
       >
-        <path d="M3 8h15M6 16h15M8 5l8 14" />
-        <circle cx="7" cy="16" r="3" />
-        <circle cx="17" cy="8" r="3" />
+        <path fill="currentColor" d="M3 5h26l-8 8H3z" />
+        <path fill="#4386ff" d="m13 13 8-8v16l-8 8z" />
       </svg>
       <strong>Tandem</strong>
     </span>
   );
 }
 export function NavIcon({ view }: { view: View | 'menu' }) {
-  const paths: Record<View | 'menu', React.ReactNode> = {
+  const paths: Partial<Record<View | 'menu', React.ReactNode>> = {
+    projects: (
+      <>
+        <path d="M2 6h6l2 2h8v9H2zM2 6V3h6l2 3" />
+      </>
+    ),
+    documents: (
+      <>
+        <path d="M5 2h7l4 4v12H5zM12 2v5h4M8 11h5M8 14h5" />
+      </>
+    ),
+    analysis: <path d="M3 3v14h14M7 13V9M11 13V5M15 13V7" />,
+    connectors: (
+      <path d="m8 12 4-4M7 8l2-2a3 3 0 0 1 5 5l-2 2M8 7l-2 2a3 3 0 0 0 5 5l2-2" />
+    ),
+    admin: (
+      <>
+        <path d="m8 2-1 3-3 1 1 3-2 2 2 3 3-1 2 3 3-2 3 1 1-3-2-2 1-3-3-1-1-3z" />
+        <circle cx="10" cy="9" r="2.5" />
+      </>
+    ),
     focus: (
       <>
         <rect x="3" y="3" width="14" height="14" rx="2" />

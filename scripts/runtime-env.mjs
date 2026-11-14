@@ -36,9 +36,16 @@ export function runtimeEnv(kind, input = process.env) {
     'MCP_ALLOWED_IMAGES',
     'MODEL_NAME',
     'MODEL_BASE_URL',
+    'MODEL_ALLOWED_ORIGINS',
+    'MODEL_ALLOW_HTTP',
     ...(kind === 'web'
       ? [
           'DATABASE_URL',
+          'TANDEM_ATTACHMENT_ROOT',
+          'TANDEM_CONNECTOR_ALLOWED_ORIGINS',
+          'TANDEM_CONNECTOR_DB_HOSTS',
+          'TANDEM_CONNECTOR_ALLOW_HTTP',
+          'TANDEM_CONNECTOR_MYSQL_TLS',
           'PORT',
           'TANDEM_HOST',
           'TANDEM_PUBLIC_URL',

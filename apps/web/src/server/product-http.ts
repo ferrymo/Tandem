@@ -94,7 +94,7 @@ export const draftAction = z.discriminatedUnion('kind', [
     .strict(),
 ]);
 const profile = z
-  .object({ model: z.string().max(200), instructions: z.string().max(6000) })
+  .object({ model: z.string().max(500), instructions: z.string().max(6000) })
   .strict();
 const source = z.discriminatedUnion('kind', [
   z.object({ kind: z.literal('upload'), label: z.string().max(200) }).strict(),

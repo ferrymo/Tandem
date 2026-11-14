@@ -2,6 +2,7 @@
   "name": "@tandem/web",
   "version": "0.1.0",
   "private": true,
+  "license": "MIT",
   "type": "module",
   "scripts": {
     "dev": "next dev --hostname 127.0.0.1 --port 3000",
@@ -18,11 +19,13 @@
     "@tandem/platform": "workspace:*",
     "@tandem/storage-postgres": "workspace:*",
     "@tandem/zentao": "workspace:*",
+    "@uiw/react-md-editor": "4.2.3",
     "antd": "6.7.0",
     "fflate": "0.8.3",
     "next": "16.4.6",
     "react": "19.3.1",
     "react-dom": "19.3.1",
+    "rehype-sanitize": "6.0.0",
     "zod": "4.6.7"
   },
   "devDependencies": {

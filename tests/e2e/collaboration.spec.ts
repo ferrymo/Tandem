@@ -7,6 +7,7 @@ test.beforeEach(async ({ page }) => {
     );
     const replies: Record<string, unknown> = {
       projects: { projects: [] },
+      capabilities: { skills: [], servers: [] },
       'available-projects': { projects: [] },
       'project-grants': { grants: [] },
       connection: {
@@ -27,6 +28,34 @@ test.beforeEach(async ({ page }) => {
     };
     return route.fulfill({ json: replies[resource ?? ''] ?? {} });
   });
+  await page.route('**/api/workspaces/*/manage', (route) =>
+    route.fulfill({
+      json: {
+        groups: [],
+        projects: [],
+        participants: [{ id: user.id, name: user.displayName, kind: 'human' }],
+        teams: [],
+        projectMembers: [],
+        modules: [],
+        documents: [],
+        tasks: [],
+        taskEvents: [],
+        efforts: [],
+        agents: [],
+        sandboxes: [],
+        modelChannels: [],
+        roles: [],
+        menus: [],
+        plugins: [],
+        connectors: [],
+        attachments: [],
+        canAdmin: true,
+        actorId: user.id,
+        permissions: [],
+        secretStates: [],
+      },
+    }),
+  );
 });
 
 const user = {
@@ -49,7 +78,7 @@ function overview(workspace = a) {
     workspace,
     team: {
       id: workspace.id + '-team',
-      name: 'T 组',
+      name: `${workspace.name} T 组`,
       templateVersion: 1,
       ownerId: user.id,
       ownerDisplayName: user.displayName,
@@ -161,6 +190,30 @@ test('登录、创建空间与 T 组初始状态', async ({ page }) => {
   const dialog = page.getByRole('dialog', { name: '创建工作空间' });
   await dialog.getByLabel('工作空间名称').fill('空间 A');
   await dialog.getByRole('button', { name: '创建工作空间' }).click();
+  await expect(
+    page.getByRole('heading', { level: 1, name: '项目', exact: true }),
+  ).toBeVisible();
+  await navigate(page, 'Agents');
+  await page.getByRole('tab', { name: '运行与执行记录', exact: true }).click();
+  await expect(
+    page.getByRole('heading', { name: '先连接一个禅道项目' }),
+  ).toBeVisible();
+  await page.route('**/api/workspaces/*/product?resource=projects', (route) =>
+    route.fulfill({
+      json: {
+        projects: [
+          {
+            id: '00000000-0000-4000-8000-000000000006',
+            externalId: '1',
+            name: '验证项目',
+            status: 'doing',
+            canWrite: true,
+          },
+        ],
+      },
+    }),
+  );
+  await page.getByRole('button', { name: '刷新数据', exact: true }).click();
   await expect(page.getByRole('heading', { name: '产品设计师' })).toBeVisible();
   await expect(page.getByRole('heading', { name: '技术架构师' })).toBeVisible();
   await expect(page.getByRole('heading', { name: '研发工程师' })).toBeVisible();
@@ -191,7 +244,7 @@ test('工作台导航、成员权限与键盘焦点', async ({ page }) => {
   await page.goto('/');
   await navigate(page, 'Agents');
   await expect(
-    page.getByRole('heading', { name: '运行与交付', exact: true }),
+    page.getByRole('heading', { level: 1, name: 'Agents', exact: true }),
   ).toBeVisible();
   await page.getByRole('button', { name: '空间成员' }).click();
   const dialog = page.getByRole('dialog', { name: '空间成员 · 空间 A' });
@@ -228,29 +281,40 @@ test('切换空间后旧慢请求不能覆盖新范围', async ({ page }) => {
   const picker = page.getByLabel('工作空间', { exact: true });
   await expect(picker).toHaveValue(a.id);
   await picker.selectOption(b.id);
-  await expect(page.getByText('空间 B · 创建人')).toBeVisible();
+  await expect(picker).toHaveValue(b.id);
+  await expect(
+    page.getByRole('button', { name: '新建项目', exact: true }),
+  ).toBeVisible();
   release?.();
-  await expect(page.getByRole('heading', { name: '产品设计师' })).toBeVisible();
-  await expect(page.getByText('空间 A · 创建人')).toHaveCount(0);
+  await expect(picker).toHaveValue(b.id);
+  await expect(page).toHaveURL(new RegExp('workspace=' + b.id));
+  await expect(
+    page.getByRole('heading', { level: 1, name: '项目', exact: true }),
+  ).toBeVisible();
 });
 
-test('同空间前后退保留工作台，未保存目标须确认后离开', async ({ page }) => {
+test('同空间前后退保留工作台，未保存配置须确认后离开', async ({ page }) => {
   await authenticated(page);
   await page.goto('/');
   await navigate(page, 'Agents');
   await expect(
-    page.getByRole('textbox', { name: '交付目标', exact: true }),
+    page.getByRole('button', { name: '新建 Agent', exact: true }),
   ).toBeVisible();
-  await navigate(page, '连接');
+  await navigate(page, '连接器');
   await page.evaluate(() => window.history.back());
   await expect(
     page.getByRole('heading', { level: 1, name: 'Agents', exact: true }),
   ).toBeVisible();
-  const goal = page.getByRole('textbox', { name: '交付目标', exact: true });
+  await page.getByRole('button', { name: '新建 Agent', exact: true }).click();
+  const editor = page.getByRole('dialog', {
+    name: '添加Agent Bot',
+    exact: true,
+  });
+  const goal = editor.getByRole('textbox', { name: '名称 *', exact: true });
   await expect(goal).toBeVisible();
   await goal.fill('尚未提交的目标');
-  await page
-    .getByRole('textbox', { name: '验收条件', exact: true })
+  await editor
+    .getByRole('textbox', { name: '说明', exact: true })
     .fill('保留两个长文本');
   const currentUrl = page.url();
   await page.evaluate(() => window.history.back());
@@ -268,21 +332,24 @@ test('同空间前后退保留工作台，未保存目标须确认后离开', as
   await expect(page).toHaveURL(currentUrl);
   await expect(goal).toHaveValue('尚未提交的目标');
   await expect(
-    page.getByRole('textbox', { name: '验收条件', exact: true }),
+    editor.getByRole('textbox', { name: '说明', exact: true }),
   ).toHaveValue('保留两个长文本');
   await page.evaluate(() => window.history.back());
   await confirmation
     .getByRole('button', { name: '放弃更改', exact: true })
     .click();
   await expect(
-    page.getByRole('heading', { level: 1, name: '关注', exact: true }),
+    page.getByRole('heading', { level: 1, name: '项目', exact: true }),
   ).toBeVisible();
-  await expect(goal).toHaveValue('');
+  await expect(editor).toBeHidden();
   await page.evaluate(() => window.history.forward());
   await expect(
     page.getByRole('heading', { level: 1, name: 'Agents', exact: true }),
   ).toBeVisible();
-  await expect(goal).toBeVisible();
+  await expect(
+    page.getByRole('button', { name: '新建 Agent', exact: true }),
+  ).toBeVisible();
+  await expect(editor).toBeHidden();
 });
 
 test('重新可见时发现会话撤销会清除所有空间数据', async ({ page }) => {
@@ -297,7 +364,9 @@ test('重新可见时发现会话撤销会清除所有空间数据', async ({ pa
     }),
   );
   await page.goto('/');
-  await expect(page.getByRole('heading', { name: '产品设计师' })).toBeVisible();
+  await expect(
+    page.getByRole('heading', { level: 1, name: '项目', exact: true }),
+  ).toBeVisible();
   revoked = true;
   await page.evaluate(() =>
     document.dispatchEvent(new Event('visibilitychange')),
@@ -305,9 +374,9 @@ test('重新可见时发现会话撤销会清除所有空间数据', async ({ pa
   await expect(
     page.getByRole('heading', { name: '登录协作工作台' }),
   ).toBeVisible();
-  await expect(page.getByRole('heading', { name: '产品设计师' })).toHaveCount(
-    0,
-  );
+  await expect(
+    page.getByRole('heading', { level: 1, name: '项目', exact: true }),
+  ).toHaveCount(0);
   await expect(page.getByLabel('工作空间', { exact: true })).toHaveCount(0);
 });
 

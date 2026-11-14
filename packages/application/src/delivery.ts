@@ -115,7 +115,7 @@ export class DeliveryService {
       if (
         !profile ||
         typeof profile.model !== 'string' ||
-        profile.model.length > 200 ||
+        profile.model.length > 500 ||
         typeof profile.instructions !== 'string' ||
         profile.instructions.length > 6000
       )

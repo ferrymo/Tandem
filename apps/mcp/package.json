@@ -2,6 +2,7 @@
   "name": "@tandem/mcp",
   "version": "0.1.0",
   "private": true,
+  "license": "MIT",
   "type": "module",
   "scripts": {
     "build": "tsup src/index.ts --format esm --target node24 --out-dir dist --no-splitting",

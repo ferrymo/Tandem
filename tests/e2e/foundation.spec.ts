@@ -10,7 +10,7 @@ test('启动页、键盘操作与布局', async ({ page }, testInfo) => {
   await expect(page.getByRole('button', { name: '重新检查' })).toBeFocused();
   await expect(page.getByRole('button', { name: '重新检查' })).toHaveCSS(
     'outline-color',
-    'rgb(57, 100, 254)',
+    'rgb(40, 100, 232)',
   );
   await expect(page.getByRole('button', { name: '重新检查' })).toHaveCSS(
     'outline-width',

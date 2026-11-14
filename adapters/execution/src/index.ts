@@ -20,6 +20,7 @@ import type {
   DeliveryEvidence,
 } from '@tandem/core';
 export type { ExecutionProvider } from '@tandem/core';
+export { LocalAttachmentStore, MAX_ATTACHMENT_BYTES } from './attachments';
 const digest = (value: string | Uint8Array) =>
   createHash('sha256').update(value).digest('hex');
 const identifier = (value: string) => /^[a-zA-Z0-9_-]{1,100}$/.test(value);

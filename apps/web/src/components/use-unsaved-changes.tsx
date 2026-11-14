@@ -37,7 +37,7 @@ export function useUnsavedChanges(
         content: '内容尚未保存。继续编辑可保留当前输入，放弃更改后无法恢复。',
         okText: '放弃更改',
         cancelText: '继续编辑',
-        autoFocusButton: 'cancel',
+        focusable: { autoFocusButton: 'cancel' },
         onOk: proceed,
         afterClose: () => {
           confirming.current = false;

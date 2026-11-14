@@ -18,7 +18,13 @@ const children = [
     {
       cwd: resolve(root, 'apps/web'),
       stdio: 'inherit',
-      env: runtimeEnv('web'),
+      env: {
+        ...runtimeEnv('web'),
+        TANDEM_ATTACHMENT_ROOT: resolve(
+          root,
+          process.env.TANDEM_ATTACHMENT_ROOT ?? 'data/attachments',
+        ),
+      },
       windowsHide: true,
     },
   ),

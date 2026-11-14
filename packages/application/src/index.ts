@@ -2,6 +2,9 @@ import { DomainError } from '@tandem/core';
 export * from './collaboration';
 export * from './capabilities';
 export * from './projects';
+export * from './work-management';
+export * from './work-secrets';
+export * from './connector-read';
 import type { AuthorizationPort, ReadinessPort } from '@tandem/core';
 // Missing identity providers must never silently grant development access.
 export const denyAllAuthorization: AuthorizationPort = {

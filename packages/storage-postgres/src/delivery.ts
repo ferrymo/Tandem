@@ -149,6 +149,13 @@ export class PostgresDeliveryRepository implements DeliveryRepository {
   }
   setProfiles(scope: ResourceScope, profiles: DeliveryProfiles) {
     return withScope(this.pool, scope, async (client) => {
+      for (const profile of Object.values(profiles)) {
+        if (profile.model.startsWith('channel:'))
+          await client.query(
+            'SELECT tandem.validate_delivery_channel_profile($1)',
+            [profile.model],
+          );
+      }
       await client.query(
         'INSERT INTO tandem.delivery_profiles(workspace_id,profiles) VALUES($1,$2::jsonb) ON CONFLICT(workspace_id) DO UPDATE SET profiles=EXCLUDED.profiles,updated_at=clock_timestamp()',
         [scope.workspaceId, JSON.stringify(profiles)],

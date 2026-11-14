@@ -118,7 +118,7 @@ export function ProductWorkspace({
   );
 }
 
-function ProjectConnections({
+export function ProjectConnections({
   client,
   projects,
 }: {

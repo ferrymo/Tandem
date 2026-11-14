@@ -1,6 +1,8 @@
 import { DomainError } from '@tandem/core';
 import type { DeliveryModel } from '@tandem/core';
 export type { ModelProvider } from '@tandem/core';
+export { ProtocolModelConnection } from './connection';
+export { ProtocolDeliveryModel, RoutedDeliveryModel } from './protocol';
 
 /** Compatible chat-completion transport. Credentials never enter prompts or logs. */
 export class CompatibleDeliveryModel implements DeliveryModel {

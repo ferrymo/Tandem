@@ -25,14 +25,25 @@ export type Member = {
   role: Workspace['role'];
 };
 export type View =
-  'focus' | 'agents' | 'tasks' | 'observe' | 'connect' | 'capabilities';
+  | 'projects'
+  | 'documents'
+  | 'analysis'
+  | 'connectors'
+  | 'admin'
+  | 'focus'
+  | 'agents'
+  | 'tasks'
+  | 'observe'
+  | 'connect'
+  | 'capabilities';
 export const navigation: { view: View; label: string }[] = [
-  { view: 'focus', label: '关注' },
-  { view: 'agents', label: 'Agents' },
+  { view: 'projects', label: '项目' },
+  { view: 'documents', label: '文档' },
   { view: 'tasks', label: '任务' },
-  { view: 'observe', label: '观察' },
-  { view: 'connect', label: '连接' },
-  { view: 'capabilities', label: '能力' },
+  { view: 'analysis', label: '分析' },
+  { view: 'agents', label: 'Agents' },
+  { view: 'connectors', label: '连接器' },
+  { view: 'admin', label: '后台管理' },
 ];
 export const roleNames = { owner: '创建人', admin: '管理员', member: '成员' };
 export class ApiError extends Error {

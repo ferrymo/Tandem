@@ -12,9 +12,10 @@ import {
   PostgresCapabilityRepository,
   PostgresDeliveryRepository,
   PostgresProjectsRepository,
+  PostgresDeliveryModelChannels,
 } from '@tandem/storage-postgres';
 import { ZentaoIdentityProvider, ZentaoProjectSystem } from '@tandem/zentao';
-import { CompatibleDeliveryModel } from '@tandem/model';
+import { CompatibleDeliveryModel, RoutedDeliveryModel } from '@tandem/model';
 import { DockerDeliveryExecution } from '@tandem/execution';
 import { SdkMcpTransport } from '@tandem/mcp-client';
 import type pg from 'pg';
@@ -160,12 +161,29 @@ export function productHandlers(
           return;
         }
         const fence = { job, workerId };
+        const current = await deliveryRepo.workerContext(fence);
+        if (!current) return;
+        const channels = new PostgresDeliveryModelChannels(pool);
+        const routedModel = new RoutedDeliveryModel({
+          fallback: model,
+          models: Object.values(current.profiles).map(
+            (profile) => profile.model,
+          ),
+          resolve: (reference) => channels.resolve(fence, reference),
+          open: (value, context) => {
+            if (!codec)
+              throw new DomainError('UNAVAILABLE', '模型凭证加密未配置');
+            return codec.open(value, context);
+          },
+          allowedOrigins: list(process.env.MODEL_ALLOWED_ORIGINS),
+          allowHttp: process.env.MODEL_ALLOW_HTTP === 'true',
+        });
         await runDeliveryJob(
           job,
           workerId,
           {
             repository: deliveryRepo,
-            model,
+            model: routedModel,
             execution,
             authorize: async (context) => {
               await authorize(context.session, context.project);

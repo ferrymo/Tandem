@@ -4,7 +4,11 @@ import type { Job, JobQueue, ResourceScope } from '@tandem/core';
 export * from './collaboration';
 export * from './capabilities';
 export * from './projects';
-export const SCHEMA_VERSION = '0009_deployment_draft_session.sql';
+export * from './work-management';
+export * from './work-secrets';
+export * from './work-runtime-models';
+export * from './connector-read';
+export const SCHEMA_VERSION = '0016_task_attachment_events.sql';
 export function createPool(connectionString: string) {
   return new pg.Pool({
     connectionString,

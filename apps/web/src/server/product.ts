@@ -10,6 +10,7 @@ import {
   PostgresCapabilityRepository,
   PostgresDeliveryRepository,
   PostgresProjectsRepository,
+  PostgresDeliveryModelChannels,
 } from '@tandem/storage-postgres';
 import { ZentaoProjectSystem } from '@tandem/zentao';
 import { GithubSkillSource, SdkMcpTransport } from '@tandem/mcp-client';
@@ -119,6 +120,7 @@ export function productServices(session: StoredSession, workspaceId: string) {
     },
   });
   return {
+    modelChannels: new PostgresDeliveryModelChannels(pool),
     projects,
     delivery,
     capabilities,
